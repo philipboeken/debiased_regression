@@ -213,8 +213,8 @@ get_mse_result <- function(all_data) {
   selected_data <- all_data[all_data$S, ]
 
   mse_all_estimators <- function(y, df, ...) {
-    sapply(estimators, function(estimator) mse(y, df[, estimator], ...)
-  })
+    sapply(estimators, function(estimator) mse(y, df[, estimator], ...))
+  }
 
   data.frame(
     "y_selected" = mse_all_estimators(selected_data$Y, selected_data),
