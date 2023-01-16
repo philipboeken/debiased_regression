@@ -6,7 +6,7 @@ Rscript plot_valid_graphs.R
 
 Run experiments: n_iter=500, n_obs=1000:
 ```
-sbatch sbatch_run_all_iters 1000
+sbatch sbatch_run_all_iters.sh 1000
 ```
 
 Copy RData files from hactar to local:
@@ -21,7 +21,7 @@ Rscript format_mse_results.R
 
 At hactar, make for each graph 20 plots with n=1000:
 ```
-sbatch sbatch_make_figures_per_graph 20 1000
+sbatch sbatch_make_figures_per_graph.sh 20 1000
 ```
 
 Copy pdf files from hactar to local:
