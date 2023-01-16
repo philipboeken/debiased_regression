@@ -1,3 +1,11 @@
+.DS_Store
+
+#######################
+### R related files ###
+#######################
+
+*.Rproj
+
 # History files
 .Rhistory
 .Rapp.history
