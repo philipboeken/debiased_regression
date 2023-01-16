@@ -309,8 +309,14 @@ plot_results <- function(all_data) {
   lines(all_data$X[ord], all_data$yhat_ipw_true[ord],
     pch = 16, col = "#0072B2", lwd = 2.5
   )
+   lines(all_data$X[ord], all_data$yhat_ipw_true_trans_25[ord],
+    pch = 16, col = "#0072B2", lwd = 2.5, lty=2
+  )
   lines(all_data$X[ord], all_data$yhat_ipw_est[ord],
     pch = 16, col = "#56B4E9", lwd = 2.5
+  )
+   lines(all_data$X[ord], all_data$yhat_ipw_est_trans_25[ord],
+    pch = 16, col = "#56B4E9", lwd = 2.5, lty=2
   )
   lines(all_data$X[ord], all_data$yhat_dr_true[ord],
     pch = 16, col = "#F0E442", lwd = 2.5
