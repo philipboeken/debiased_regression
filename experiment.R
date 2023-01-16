@@ -19,7 +19,8 @@ sigmoid <- function(x, ymin = 0, ymax = 1) {
 }
 
 mse <- function(y, yhat, weights = replicate(length(y), 1)) {
-  stopifnot(length(y) == length(yhat) && length(yhat) == length(weights))
+  stopifnot(length(y) == length(yhat))
+  stopifnot(length(yhat) == length(weights))
   sum(weights * (y - yhat)^2) / sum(weights)
 }
 
