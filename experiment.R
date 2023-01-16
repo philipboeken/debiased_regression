@@ -59,21 +59,25 @@ write_table <- function(table, file, append = FALSE) {
   cat(out, "\n", file = file, sep = "\n", append = append)
 }
 
+get_roots <- function(amat) {
+  is_root <- Reduce(function(a, b) a & b, lapply(colnames(amat), function(var) amat[, var] == 0))
+  names(amat)[is_root]
+}
+
 get_top_order <- function(amat) {
   amat <- data.frame(amat)
-  order <- c()
+  top_order <- c()
   while (nrow(amat) > 0) {
-    is_root <- Reduce(function(a, b) a & b, lapply(colnames(amat), function(var) amat[, var] == 0))
-    roots <- names(amat)[is_root]
-    order <- c(order, roots)
+    roots <- get_roots(amat)
+    top_order <- c(top_order, roots)
     remain <- setdiff(colnames(amat), roots)
     if (length(remain) == 1) {
-      order <- c(order, remain)
+      top_order <- c(top_order, remain)
       remain <- c()
     }
     amat <- amat[remain, remain]
   }
-  return(order)
+  return(top_order)
 }
 
 simulate_nonlinear <- function(amat, n, seed) {
