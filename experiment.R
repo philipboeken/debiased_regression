@@ -50,13 +50,17 @@ plot_graph <- function(amat) {
 
 write_table <- function(table, file, append = FALSE) {
   out_temp <- capture.output(table)
-  keep <- 1 + nrow(all_mse_results[[1]])
+  keep <- 1 + nrow(table)
   out <- out_temp[1:keep]
   for (i in 2:(length(out_temp) / keep)) {
     length_skip <- max(nchar(rownames(table))) + 1
     out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip), sep = "")
   }
   cat(out, "\n", file = file, sep = "\n", append = append)
+}
+
+get_parents <- function(var, amat) {
+  colnames(amat)[amat[var, ] == 1]
 }
 
 get_roots <- function(amat) {
@@ -97,7 +101,7 @@ simulate_nonlinear <- function(amat, n, seed) {
 
   while (sum(all_data$S) < 50) {
     for (var in top_order) {
-      parents <- colnames(amat)[amat[var, ] == 1]
+      parents <- get_parents(var, amat)
       if (length(parents) == 0) {
         mu <- numeric(n)
         eps <- runif(n, -2, 2)
@@ -110,7 +114,7 @@ simulate_nonlinear <- function(amat, n, seed) {
       all_data[, var] <- mu + eps
     }
 
-    S_parents <- colnames(amat)[amat["S", ] == 1]
+    S_parents <- get_parents("S", amat)
     all_data$pi <- apply(sapply(S_parents, function(parent) {
       sigmoid(scale(all_data[, parent]) * 10, 1 / 20, 1)
     }), 1, prod)
@@ -133,33 +137,33 @@ cbind_predictions <- function(all_data, amat) {
 
   # 'True' model as if we have observed all data
   true_model <- gam(Y ~ s(X, bs = "gp"), data = all_data)
-  all_data$yhat_true <- predict(true_model, all_data[, c("X")])
+  all_data$yhat_true <- predict(true_model, data.frame(X=all_data$X))
 
   # Naive model directly trained on observed data
   naive_model <- gam(Y ~ s(X, bs = "gp"), data = selected_data)
-  all_data$yhat_naive <- predict(naive_model, all_data[, c("X")])
+  all_data$yhat_naive <- predict(naive_model, data.frame(X=all_data$X))
 
   # Direct recursive (imputed) with gam
-  if (pcalg::dsep("Y", "X", "Z", g = as(t(amat), "graphNEL"))) {
-    imputation_model <- gam(Y ~ s(Z, bs = "gp"), data = selected_data)
-  } else {
+  if ("Y" %in% get_parents("X", amat) || "X" %in% get_parents("Y", amat)) {
     imputation_model <- gam(Y ~ s(X, Z, bs = "gp"), data = selected_data)
+  } else {
+    imputation_model <- gam(Y ~ s(Z, bs = "gp"), data = selected_data)
   }
-  all_data$y_imputed <- predict(imputation_model, all_data[, c("X", "Z")])
+  all_data$y_imputed <- predict(imputation_model, data.frame(X=all_data$X, Z=all_data$Z))
   all_data$y_mix <- all_data$y_imputed
   all_data$y_mix[1:n_selected] <- selected_data$Y
 
   recursive_model <- gam(y_imputed ~ s(X, bs = "gp"), data = all_data)
-  all_data$yhat_recursive <- predict(recursive_model, all_data[, c("X")])
+  all_data$yhat_recursive <- predict(recursive_model, data.frame(X=all_data$X))
 
   recursive_model_mix <- gam(y_mix ~ s(X, bs = "gp"), data = all_data)
-  all_data$yhat_recursive_mix <- predict(recursive_model_mix, all_data[, c("X")])
+  all_data$yhat_recursive_mix <- predict(recursive_model_mix, data.frame(X=all_data$X))
 
   # Estimate pi and calculate weights
-  if (pcalg::dsep("S", "X", "Z", g = as(t(amat), "graphNEL"))) {
-    pi_model <- gam(S ~ s(Z, bs = "gp"), family = binomial(link = "logit"), data = all_data)
-  } else {
+  if ("X" %in% get_parents("S", amat)) {
     pi_model <- gam(S ~ s(X, Z, bs = "gp"), family = binomial(link = "logit"), data = all_data)
+  } else {
+    pi_model <- gam(S ~ s(Z, bs = "gp"), family = binomial(link = "logit"), data = all_data)
   }
   all_data$pi_hat <- pi_model$fitted.values
   p_s <- sum(all_data$S) / n
@@ -175,28 +179,28 @@ cbind_predictions <- function(all_data, amat) {
   ipw_model_est <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est)
   ipw_model_est_clip <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_clip)
   ipw_model_est_trans <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_trans)
-  all_data$yhat_ipw_est <- predict(ipw_model_est, all_data[, c("X")])
-  all_data$yhat_ipw_est_clip <- predict(ipw_model_est_clip, all_data[, c("X")])
-  all_data$yhat_ipw_est_trans <- predict(ipw_model_est_trans, all_data[, c("X")])
+  all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X=all_data$X))
+  all_data$yhat_ipw_est_clip <- predict(ipw_model_est_clip, data.frame(X=all_data$X))
+  all_data$yhat_ipw_est_trans <- predict(ipw_model_est_trans, data.frame(X=all_data$X))
 
   # IPW with true weights
   ipw_model_true <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true)
   ipw_model_true_clip <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_clip)
   ipw_model_true_trans <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_trans)
-  all_data$yhat_ipw_true <- predict(ipw_model_true, all_data[, c("X")])
-  all_data$yhat_ipw_true_clip <- predict(ipw_model_true_clip, all_data[, c("X")])
-  all_data$yhat_ipw_true_trans <- predict(ipw_model_true_trans, all_data[, c("X")])
+  all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X=all_data$X))
+  all_data$yhat_ipw_true_clip <- predict(ipw_model_true_clip, data.frame(X=all_data$X))
+  all_data$yhat_ipw_true_trans <- predict(ipw_model_true_trans, data.frame(X=all_data$X))
 
   # Doubly Robust
   all_data$resid_naive <- all_data$Y - all_data$yhat_naive
   selected_data <- all_data[all_data$S, ]
 
   resid_ipw_model_est <- gam(resid_naive ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est)
-  all_data$residhat_ipw_est <- predict(resid_ipw_model_est, all_data[, c("X")])
+  all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X=all_data$X))
   all_data$yhat_dr_est <- all_data$yhat_naive + all_data$residhat_ipw_est
 
   resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true)
-  all_data$residhat_ipw_true <- predict(resid_ipw_model_true, all_data[, c("X")])
+  all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X=all_data$X))
   all_data$yhat_dr_true <- all_data$yhat_naive + all_data$residhat_ipw_true
 
   return(all_data)
@@ -208,7 +212,9 @@ get_mse_result <- function(all_data) {
 
   selected_data <- all_data[all_data$S, ]
 
-  mse_all_estimators <- function(y, df, ...) mse(y, df[, estimator], ...)
+  mse_all_estimators <- function(y, df, ...) {
+    sapply(estimators, function(estimator) mse(y, df[, estimator], ...)
+  })
 
   data.frame(
     "y_selected" = mse_all_estimators(selected_data$Y, selected_data),

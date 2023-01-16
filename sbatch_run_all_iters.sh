@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 #SBATCH --job-name=sbatch_run_all_iters
-#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_mse.stdout
-#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_mse.stderr
+#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_mse_iter_%a.stdout
+#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_mse_iter_%a.stderr
 #SBATCH --workdir=/home/pboeken/debiased_regression
 #
 #SBATCH --time=10000:00

@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 #SBATCH --job-name=sbatch_make_figures_per_graph
-#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_figures.stdout
-#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_figures.stderr
+#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_figures_graph_%a.stdout
+#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_figures_graph_%a.stderr
 #SBATCH --workdir=/home/pboeken/debiased_regression
 #
 #SBATCH --time=10000:00
