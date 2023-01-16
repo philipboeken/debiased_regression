@@ -1,5 +1,5 @@
 
-# Run as: Rscript run_experiment.R <graph_nr> <iter> <n_obs>
+# Run as: Rscript run_iter.R <iter> <n_obs>
 
 args <- commandArgs(trailingOnly = TRUE)
 
