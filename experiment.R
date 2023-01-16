@@ -60,7 +60,10 @@ write_table <- function(table, file, append = FALSE) {
 }
 
 get_roots <- function(amat) {
-  is_root <- Reduce(function(a, b) a & b, lapply(colnames(amat), function(var) amat[, var] == 0))
+  is_root <- Reduce(
+    function(a, b) a & b,
+    lapply(colnames(amat), function(var) amat[, var] == 0)
+  )
   names(amat)[is_root]
 }
 
