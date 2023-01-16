@@ -158,7 +158,7 @@ cbind_recursive <- function(all_data, amat) {
   }
   all_data$y_imputed <- predict(imputation_model, data.frame(X=all_data$X, Z=all_data$Z))
   all_data$y_mix <- all_data$y_imputed
-  all_data$y_mix[all$S] <- selected_data$Y
+  all_data$y_mix[all_data$S] <- selected_data$Y
 
   recursive_model <- gam(y_imputed ~ s(X, bs = "gp"), data = all_data)
   all_data$yhat_recursive <- predict(recursive_model, data.frame(X=all_data$X))

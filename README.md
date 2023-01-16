@@ -14,6 +14,11 @@ Copy RData files from hactar to local:
 scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.RData' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
 ```
 
+Copy txt files from hactar to local:
+```
+scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.txt' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
+```
+
 Locally combine MSE results:
 ```
 Rscript format_mse_results.R
