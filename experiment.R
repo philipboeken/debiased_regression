@@ -181,19 +181,19 @@ cbind_ipw <- function(all_data, amat) {
   all_data$pi_hat <- pi_model$fitted.values
   p_s <- sum(all_data$S) / n
   all_data$weights_est <- p_s / all_data$pi_hat
-  # all_data$weights_est_clip_05 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.05)
-  # all_data$weights_est_clip_1 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.1)
-  # all_data$weights_est_clip_25 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.25)
-  # all_data$weights_est_trans_05 <- p_s / translate_between_values(all_data$pi_hat, 0.05, 1)
-  # all_data$weights_est_trans_1 <- p_s / translate_between_values(all_data$pi_hat, 0.1, 1)
-  # all_data$weights_est_trans_25 <- p_s / translate_between_values(all_data$pi_hat, 0.25, 1)
+  all_data$weights_est_clip_05 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.05)
+  all_data$weights_est_clip_1 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.1)
+  all_data$weights_est_clip_25 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.25)
+  all_data$weights_est_trans_05 <- p_s / translate_between_values(all_data$pi_hat, 0.05, 1)
+  all_data$weights_est_trans_1 <- p_s / translate_between_values(all_data$pi_hat, 0.1, 1)
+  all_data$weights_est_trans_25 <- p_s / translate_between_values(all_data$pi_hat, 0.25, 1)
   all_data$weights_true <- p_s / all_data$pi
-  # all_data$weights_true_clip_05 <- p_s / clip_lower_quantile(all_data$pi, 0.05)
-  # all_data$weights_true_clip_1 <- p_s / clip_lower_quantile(all_data$pi, 0.1)
-  # all_data$weights_true_clip_25 <- p_s / clip_lower_quantile(all_data$pi, 0.25)
-  # all_data$weights_true_trans_05 <- p_s / translate_between_values(all_data$pi, 0.05, 1)
-  # all_data$weights_true_trans_1 <- p_s / translate_between_values(all_data$pi, 0.1, 1)
-  # all_data$weights_true_trans_25 <- p_s / translate_between_values(all_data$pi, 0.25, 1)
+  all_data$weights_true_clip_05 <- p_s / clip_lower_quantile(all_data$pi, 0.05)
+  all_data$weights_true_clip_1 <- p_s / clip_lower_quantile(all_data$pi, 0.1)
+  all_data$weights_true_clip_25 <- p_s / clip_lower_quantile(all_data$pi, 0.25)
+  all_data$weights_true_trans_05 <- p_s / translate_between_values(all_data$pi, 0.05, 1)
+  all_data$weights_true_trans_1 <- p_s / translate_between_values(all_data$pi, 0.1, 1)
+  all_data$weights_true_trans_25 <- p_s / translate_between_values(all_data$pi, 0.25, 1)
   selected_data <- all_data[all_data$S, ]
 
   # IPW with estimated weights
