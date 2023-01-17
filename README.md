@@ -6,7 +6,7 @@ Rscript plot_valid_graphs.R
 
 Run experiments: n_iter=500, n_obs=1000:
 ```
-sbatch -a=1-500 sbatch_run_all_iters.sh 1000
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000
 ```
 
 Copy RData files from hactar to local:
