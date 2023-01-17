@@ -10,8 +10,7 @@
 #
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT_80
 #
-#SBATCH --array=1-500
 
-# Run as: sbatch sbatch_run_all_iters.sh <n_obs>
+# Run as: sbatch --a=1-<n_iter> sbatch_run_all_iters.sh <n_obs>
 
 Rscript run_iter.R $SLURM_ARRAY_TASK_ID $1
