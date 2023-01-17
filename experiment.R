@@ -12,7 +12,7 @@ library(mgcv)
 # - Identify for which graphs any method fails, or where naive has much bias.
 # - Perhaps select only datasets where naive fails.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
-# - Find other non-parametric weighted regression methods
+# v Find other non-parametric weighted regression methods
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
