@@ -49,17 +49,6 @@ plot_graph <- function(amat) {
   )
 }
 
-write_table <- function(table, file, append = FALSE) {
-  out_temp <- capture.output(table)
-  keep <- 1 + nrow(table)
-  out <- out_temp[1:keep]
-  for (i in 2:(length(out_temp) / keep)) {
-    length_skip <- max(nchar(rownames(table))) + 1
-    out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip), sep = "")
-  }
-  cat(out, "\n", file = file, sep = "\n", append = append)
-}
-
 get_parents <- function(var, amat) {
   colnames(amat)[amat[var, ] == 1]
 }

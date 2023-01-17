@@ -16,7 +16,6 @@ for (graph_nr in 1:27) {
     mse_result <- experiment(graph_nr, iter, n)
     outfile <- sprintf("output/mse_results/mse_result_%s_%s_%s", graph_nr, iter, n)
     save(mse_result, file = sprintf("%s.RData", outfile))
-    write_table(mse_result, file = sprintf("%s.txt", outfile))
 }
 
 end <- Sys.time()
