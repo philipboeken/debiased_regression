@@ -12,7 +12,8 @@ get_mse_formatted <- function(list_of_mse_results) {
     formatted_results
 }
 
-n <- 1000
+args <- commandArgs(trailingOnly = TRUE)
+n <- as.numeric(args[1])
 n_iter <- numeric(1)
 load("data/valid_graphs.RData")
 mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {

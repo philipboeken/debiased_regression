@@ -19,9 +19,9 @@ Copy txt files from hactar to local:
 scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.txt' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
 ```
 
-Locally combine MSE results:
+Locally combine MSE results for results with n=2000:
 ```
-Rscript format_mse_results.R
+Rscript format_mse_results.R 2000
 ```
 
 At hactar, make for each graph 20 plots with n=1000:
