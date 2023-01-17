@@ -106,7 +106,8 @@ simulate_nonlinear <- function(amat, n, seed) {
 
     S_parents <- get_parents("S", amat)
     all_data$pi <- apply(sapply(S_parents, function(parent) {
-      sigmoid(scale(all_data[, parent]) * 10, 1 / 20, 1)
+      # sigmoid(scale(all_data[, parent]) * 10, 1 / 20, 1)
+      sigmoid(scale(all_data[, parent]) * 10, 0, 1)
     }), 1, prod)
     all_data$S <- runif(n) < all_data$pi
 
