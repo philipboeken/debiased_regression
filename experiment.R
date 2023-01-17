@@ -131,7 +131,7 @@ simulate_nonlinear <- function(amat, n, seed) {
 
 cbind_true <- function(all_data) {
     # 'True' model as if we have observed all data
-    true_model <- gam(Y ~ s(X, bs = "gp"), data = all_data)
+    true_model <- gam(Y ~ s(X, bs = "tp"), data = all_data)
     all_data$yhat_true <- predict(true_model, data.frame(X=all_data$X))
     
     return(all_data)
@@ -141,7 +141,7 @@ cbind_naive <- function(all_data) {
   selected_data <- all_data[all_data$S, ]
 
   # Naive model directly trained on observed data
-  naive_model <- gam(Y ~ s(X, bs = "gp"), data = selected_data)
+  naive_model <- gam(Y ~ s(X, bs = "tp"), data = selected_data)
   all_data$yhat_naive <- predict(naive_model, data.frame(X=all_data$X))
   
   return(all_data)
@@ -152,18 +152,18 @@ cbind_recursive <- function(all_data, amat) {
 
   # Direct recursive (imputed) with gam
   if ("Y" %in% get_parents("X", amat) || "X" %in% get_parents("Y", amat)) {
-    imputation_model <- gam(Y ~ s(X, Z, bs = "gp"), data = selected_data)
+    imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
   } else {
-    imputation_model <- gam(Y ~ s(Z, bs = "gp"), data = selected_data)
+    imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
   }
   all_data$y_imputed <- predict(imputation_model, data.frame(X=all_data$X, Z=all_data$Z))
   all_data$y_mix <- all_data$y_imputed
   all_data$y_mix[all_data$S] <- selected_data$Y
 
-  recursive_model <- gam(y_imputed ~ s(X, bs = "gp"), data = all_data)
+  recursive_model <- gam(y_imputed ~ s(X, bs = "tp"), data = all_data)
   all_data$yhat_recursive <- predict(recursive_model, data.frame(X=all_data$X))
 
-  recursive_model_mix <- gam(y_mix ~ s(X, bs = "gp"), data = all_data)
+  recursive_model_mix <- gam(y_mix ~ s(X, bs = "tp"), data = all_data)
   all_data$yhat_recursive_mix <- predict(recursive_model_mix, data.frame(X=all_data$X))
 
   return(all_data)
@@ -174,9 +174,9 @@ cbind_ipw <- function(all_data, amat) {
 
   # Estimate pi and calculate weights
   if ("X" %in% get_parents("S", amat)) {
-    pi_model <- gam(S ~ s(X, Z, bs = "gp"), family = binomial(link = "logit"), data = all_data)
+    pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
   } else {
-    pi_model <- gam(S ~ s(Z, bs = "gp"), family = binomial(link = "logit"), data = all_data)
+    pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
   }
   all_data$pi_hat <- pi_model$fitted.values
   p_s <- sum(all_data$S) / n
@@ -197,13 +197,13 @@ cbind_ipw <- function(all_data, amat) {
   selected_data <- all_data[all_data$S, ]
 
   # IPW with estimated weights
-  ipw_model_est <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est)
-  ipw_model_est_clip_05 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_clip_05)
-  ipw_model_est_clip_1 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_clip_1)
-  ipw_model_est_clip_25 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_clip_25)
-  ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_trans_05)
-  ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_trans_1)
-  ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est_trans_25)
+  ipw_model_est <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
+  ipw_model_est_clip_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_05)
+  ipw_model_est_clip_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_1)
+  ipw_model_est_clip_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_25)
+  ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_05)
+  ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_1)
+  ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_25)
   all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X=all_data$X))
   all_data$yhat_ipw_est_clip_05 <- predict(ipw_model_est_clip_05, data.frame(X=all_data$X))
   all_data$yhat_ipw_est_clip_1 <- predict(ipw_model_est_clip_1, data.frame(X=all_data$X))
@@ -213,13 +213,13 @@ cbind_ipw <- function(all_data, amat) {
   all_data$yhat_ipw_est_trans_25 <- predict(ipw_model_est_trans_25, data.frame(X=all_data$X))
 
   # IPW with true weights
-  ipw_model_true <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true)
-  ipw_model_true_clip_05 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_clip_05)
-  ipw_model_true_clip_1 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_clip_1)
-  ipw_model_true_clip_25 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_clip_25)
-  ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_trans_05)
-  ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_trans_1)
-  ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true_trans_25)
+  ipw_model_true <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
+  ipw_model_true_clip_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_05)
+  ipw_model_true_clip_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_1)
+  ipw_model_true_clip_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_25)
+  ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_05)
+  ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_1)
+  ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_25)
   all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X=all_data$X))
   all_data$yhat_ipw_true_clip_05 <- predict(ipw_model_true_clip_05, data.frame(X=all_data$X))
   all_data$yhat_ipw_true_clip_1 <- predict(ipw_model_true_clip_1, data.frame(X=all_data$X))
@@ -236,11 +236,11 @@ cbind_doubly_robust <- function(all_data) {
   all_data$resid_naive <- all_data$Y - all_data$yhat_naive
   selected_data <- all_data[all_data$S, ]
 
-  resid_ipw_model_est <- gam(resid_naive ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_est)
+  resid_ipw_model_est <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
   all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X=all_data$X))
   all_data$yhat_dr_est <- all_data$yhat_naive + all_data$residhat_ipw_est
 
-  resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "gp"), data = selected_data, weights = selected_data$weights_true)
+  resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
   all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X=all_data$X))
   all_data$yhat_dr_true <- all_data$yhat_naive + all_data$residhat_ipw_true
 
