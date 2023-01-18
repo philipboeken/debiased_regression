@@ -2,7 +2,7 @@
 
 source("experiment.R")
 
-get_mse_stats <- function (list_of_mse_results) {
+get_mse_stats <- function(list_of_mse_results) {
     means <- list_of_mse_results[[1]]
     means[, ] <- NA
     vars <- means
@@ -13,7 +13,7 @@ get_mse_stats <- function (list_of_mse_results) {
             vars[i, j] <- var(mse_for_type)
         }
     }
-    list(means=means, vars=vars)
+    list(means = means, vars = vars)
 }
 
 get_mse_formatted <- function(list_of_mse_results) {
@@ -30,14 +30,14 @@ get_mse_formatted <- function(list_of_mse_results) {
 }
 
 write_table <- function(table, file, append = FALSE) {
-  out_temp <- capture.output(table)
-  keep <- 1 + nrow(table)
-  out <- out_temp[1:keep]
-  for (i in 2:(length(out_temp) / keep)) {
-    length_skip <- max(nchar(rownames(table))) + 1
-    out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip), sep = "")
-  }
-  cat(out, "\n", file = file, sep = "\n", append = append)
+    out_temp <- capture.output(table)
+    keep <- 1 + nrow(table)
+    out <- out_temp[1:keep]
+    for (i in 2:(length(out_temp) / keep)) {
+        length_skip <- max(nchar(rownames(table))) + 1
+        out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip), sep = "")
+    }
+    cat(out, "\n", file = file, sep = "\n", append = append)
 }
 
 args <- commandArgs(trailingOnly = TRUE)
@@ -79,4 +79,3 @@ for (i in 1:length(mse_results_per_graph)) {
     formatted <- get_mse_formatted(mse_results_per_graph[[i]])
     write_table(formatted, file = outfile, append = TRUE)
 }
-

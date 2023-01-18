@@ -78,7 +78,7 @@ get_top_order <- function(amat) {
   return(top_order)
 }
 
-simulate_nonlinear <- function(amat, n, seed, pos_mode="pos", indep_mode="indep") {
+simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "indep") {
   stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
   stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
   set.seed(seed)
@@ -108,14 +108,14 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode="pos", indep_mode="indep"
     }
 
     S_parents <- get_parents("S", amat)
-    min_prob <- c("pos" = 1/20, "wpos" = 1/100, "npos" = 0)[pos_mode]
+    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
     all_data$pi <- apply(sapply(S_parents, function(parent) {
       sigmoid(scale(all_data[, parent]) * 10, min_prob, 1)
     }), 1, prod)
-    
-    dep <- c("indep" = 0, "wdep" = 1/2, "dep" = 1)[indep_mode]
+
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
     all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, dep * min_prob + (1 - dep), 10)
-    
+
     all_data$S <- runif(n) < all_data$pi
 
     if (sum(all_data$S) < 50) {
@@ -127,11 +127,11 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode="pos", indep_mode="indep"
 }
 
 cbind_true <- function(all_data) {
-    # 'True' model as if we have observed all data
-    true_model <- gam(Y ~ s(X, bs = "tp"), data = all_data)
-    all_data$yhat_true <- predict(true_model, data.frame(X=all_data$X))
-    
-    return(all_data)
+  # 'True' model as if we have observed all data
+  true_model <- gam(Y ~ s(X, bs = "tp"), data = all_data)
+  all_data$yhat_true <- predict(true_model, data.frame(X = all_data$X))
+
+  return(all_data)
 }
 
 cbind_naive <- function(all_data) {
@@ -139,8 +139,8 @@ cbind_naive <- function(all_data) {
 
   # Naive model directly trained on observed data
   naive_model <- gam(Y ~ s(X, bs = "tp"), data = selected_data)
-  all_data$yhat_naive <- predict(naive_model, data.frame(X=all_data$X))
-  
+  all_data$yhat_naive <- predict(naive_model, data.frame(X = all_data$X))
+
   return(all_data)
 }
 
@@ -153,15 +153,15 @@ cbind_recursive <- function(all_data, amat) {
   } else {
     imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
   }
-  all_data$y_imputed <- predict(imputation_model, data.frame(X=all_data$X, Z=all_data$Z))
+  all_data$y_imputed <- predict(imputation_model, data.frame(X = all_data$X, Z = all_data$Z))
   all_data$y_mix <- all_data$y_imputed
   all_data$y_mix[all_data$S] <- selected_data$Y
 
   recursive_model <- gam(y_imputed ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_recursive <- predict(recursive_model, data.frame(X=all_data$X))
+  all_data$yhat_recursive <- predict(recursive_model, data.frame(X = all_data$X))
 
   recursive_model_mix <- gam(y_mix ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_recursive_mix <- predict(recursive_model_mix, data.frame(X=all_data$X))
+  all_data$yhat_recursive_mix <- predict(recursive_model_mix, data.frame(X = all_data$X))
 
   return(all_data)
 }
@@ -201,13 +201,13 @@ cbind_ipw <- function(all_data, amat) {
   ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_05)
   ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_1)
   ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_25)
-  all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_clip_05 <- predict(ipw_model_est_clip_05, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_clip_1 <- predict(ipw_model_est_clip_1, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_clip_25 <- predict(ipw_model_est_clip_25, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_trans_05 <- predict(ipw_model_est_trans_05, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_trans_1 <- predict(ipw_model_est_trans_1, data.frame(X=all_data$X))
-  all_data$yhat_ipw_est_trans_25 <- predict(ipw_model_est_trans_25, data.frame(X=all_data$X))
+  all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_clip_05 <- predict(ipw_model_est_clip_05, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_clip_1 <- predict(ipw_model_est_clip_1, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_clip_25 <- predict(ipw_model_est_clip_25, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_trans_05 <- predict(ipw_model_est_trans_05, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_trans_1 <- predict(ipw_model_est_trans_1, data.frame(X = all_data$X))
+  all_data$yhat_ipw_est_trans_25 <- predict(ipw_model_est_trans_25, data.frame(X = all_data$X))
 
   # IPW with true weights
   ipw_model_true <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
@@ -217,13 +217,13 @@ cbind_ipw <- function(all_data, amat) {
   ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_05)
   ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_1)
   ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_25)
-  all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_clip_05 <- predict(ipw_model_true_clip_05, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_clip_1 <- predict(ipw_model_true_clip_1, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_clip_25 <- predict(ipw_model_true_clip_25, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_trans_05 <- predict(ipw_model_true_trans_05, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_trans_1 <- predict(ipw_model_true_trans_1, data.frame(X=all_data$X))
-  all_data$yhat_ipw_true_trans_25 <- predict(ipw_model_true_trans_25, data.frame(X=all_data$X))
+  all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_clip_05 <- predict(ipw_model_true_clip_05, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_clip_1 <- predict(ipw_model_true_clip_1, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_clip_25 <- predict(ipw_model_true_clip_25, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_trans_05 <- predict(ipw_model_true_trans_05, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_trans_1 <- predict(ipw_model_true_trans_1, data.frame(X = all_data$X))
+  all_data$yhat_ipw_true_trans_25 <- predict(ipw_model_true_trans_25, data.frame(X = all_data$X))
 
   return(all_data)
 }
@@ -234,11 +234,11 @@ cbind_doubly_robust <- function(all_data) {
   selected_data <- all_data[all_data$S, ]
 
   resid_ipw_model_est <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
-  all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X=all_data$X))
+  all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X = all_data$X))
   all_data$yhat_dr_est <- all_data$yhat_naive + all_data$residhat_ipw_est
 
   resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
-  all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X=all_data$X))
+  all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X = all_data$X))
   all_data$yhat_dr_true <- all_data$yhat_naive + all_data$residhat_ipw_true
 
   return(all_data)
@@ -250,7 +250,7 @@ cbind_predictions <- function(all_data, amat) {
   all_data <- cbind_recursive(all_data, amat)
   all_data <- cbind_ipw(all_data, amat)
   all_data <- cbind_doubly_robust(all_data)
-  
+
   return(all_data)
 }
 
@@ -306,14 +306,14 @@ plot_results <- function(all_data) {
   lines(all_data$X[ord], all_data$yhat_ipw_true[ord],
     pch = 16, col = "#0072B2", lwd = 2.5
   )
-   lines(all_data$X[ord], all_data$yhat_ipw_true_trans_25[ord],
-    pch = 16, col = "#0072B2", lwd = 2.5, lty=2
+  lines(all_data$X[ord], all_data$yhat_ipw_true_trans_25[ord],
+    pch = 16, col = "#0072B2", lwd = 2.5, lty = 2
   )
   lines(all_data$X[ord], all_data$yhat_ipw_est[ord],
     pch = 16, col = "#56B4E9", lwd = 2.5
   )
-   lines(all_data$X[ord], all_data$yhat_ipw_est_trans_25[ord],
-    pch = 16, col = "#56B4E9", lwd = 2.5, lty=2
+  lines(all_data$X[ord], all_data$yhat_ipw_est_trans_25[ord],
+    pch = 16, col = "#56B4E9", lwd = 2.5, lty = 2
   )
   lines(all_data$X[ord], all_data$yhat_dr_true[ord],
     pch = 16, col = "#F0E442", lwd = 2.5

@@ -1,4 +1,3 @@
-
 # Run as: Rscript run_iter.R <iter> <n_obs> <pos_mode> <indep_mode>
 
 args <- commandArgs(trailingOnly = TRUE)
