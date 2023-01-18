@@ -12,7 +12,7 @@ pdf(sprintf("output/figures/pos_indep_grid/figure_%s_%s_%s.pdf", graph_nr, iter,
 par(mfrow = c(3, 3))
 for (pos_mode in c("pos", "wpos", "npos")) {
   for (indep_mode in c("indep", "wdep", "dep")) {
-    print(experiment(graph_nr = graph_nr, iter = iter, n = n, pos_mode = pos_mode, indep_mode = indep_mode, plot_flag = TRUE))
+    experiment(graph_nr = graph_nr, iter = iter, n = n, pos_mode = pos_mode, indep_mode = indep_mode, plot_flag = TRUE)
   }
 }
 dev.off()

@@ -57,7 +57,7 @@ scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_
 scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.txt' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
 
 # Copy figures from hactar to local:
-scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/figures/*' ~/Documents/PhD/Missingness_regression/debiased_regression/output/figures
+scp -rp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/figures' ~/Documents/PhD/Missingness_regression/debiased_regression/output
 
 # Copy log and error files from hactar to local:
 scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/log/*' ~/Documents/PhD/Missingness_regression/debiased_regression/output/log

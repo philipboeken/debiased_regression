@@ -46,7 +46,7 @@ n <- as.numeric(args[1])
 pos_mode <- as.character(args[2])
 indep_mode <- as.character(args[3])
 
-mse_outfolder <- sprintf("output/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
+mse_outfolder <- sprintf("output/mse_results/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
 
 load("data/valid_graphs.RData")
 mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {
