@@ -1,6 +1,6 @@
 # Run as: Rscript plot_pos_vs_indep.R <graph_nr> <iter> <n_obs>
 
-load("experiment.R")
+source("experiment.R")
 
 args <- commandArgs(trailingOnly = TRUE)
 
