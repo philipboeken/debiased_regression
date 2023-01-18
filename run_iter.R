@@ -15,6 +15,7 @@ source("experiment.R")
 
 mse_outfolder <- sprintf("./output/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
 dir.create(mse_outfolder, showWarnings = FALSE)
+file.copy("output/figures/.gitignore", mse_outfolder)
 
 for (graph_nr in 1:27) {
     mse_result <- experiment(graph_nr, iter, n, pos_mode, indep_mode)
