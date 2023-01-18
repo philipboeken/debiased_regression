@@ -19,7 +19,7 @@ dir.create(fig_outfolder, showWarnings = FALSE)
 
 pdf(sprintf("%s/graph_%s_%s.pdf", outfolder, graph_nr, n_iter), width = 7, height = 4)
 for (iter in 1:n_iter) {
-    experiment(graph_nr, iter, n, plot_flag = TRUE)
+    experiment(graph_nr, iter, n, pos_mode = pos_mode, indep_mode = indep_mode, plot_flag = TRUE)
 }
 dev.off()
 

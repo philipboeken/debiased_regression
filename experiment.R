@@ -32,6 +32,7 @@ clip_lower_quantile <- function(probs, q) {
 }
 
 translate_between_values <- function(probs, min_value, max_value = 1) {
+  probs <- probs - min(probs)
   (probs / max(probs)) * (max_value - min_value) + min_value
 }
 
@@ -114,7 +115,8 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
     }), 1, prod)
 
     dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, dep * min_prob + (1 - dep), 10)
+    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, dep * min_prob + (1 - dep), 1)
+    all_data$pi <- as.numeric(all_data$pi)
 
     all_data$S <- runif(n) < all_data$pi
 
@@ -176,7 +178,7 @@ cbind_ipw <- function(all_data, amat) {
     pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
   }
   all_data$pi_hat <- pi_model$fitted.values
-  p_s <- sum(all_data$S) / n
+  p_s <- sum(all_data$S) / length(all_data$S)
   all_data$weights_est <- p_s / all_data$pi_hat
   all_data$weights_est_clip_05 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.05)
   all_data$weights_est_clip_1 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.1)
@@ -341,4 +343,6 @@ experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "
   return(mse_result)
 }
 
-# print(experiment(7, 1, n = 1000))
+# print(experiment(graph_nr = 17, iter = 6, n = 1000, pos_mode = "pos", indep_mode = "indep", plot_flag = TRUE))
+
+
