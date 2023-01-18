@@ -1,3 +1,5 @@
+# Run as: Rscript format_mse_results.R <n_obs> <pos_mode> <indep_mode>
+
 source("experiment.R")
 
 get_mse_stats <- function (list_of_mse_results) {
@@ -39,12 +41,17 @@ write_table <- function(table, file, append = FALSE) {
 }
 
 args <- commandArgs(trailingOnly = TRUE)
-n <- as.numeric(args[1])
 n_iter <- numeric(1)
+n <- as.numeric(args[1])
+pos_mode <- as.character(args[2])
+indep_mode <- as.character(args[3])
+
+mse_outfolder <- sprintf("output/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
+
 load("data/valid_graphs.RData")
 mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {
     files <- list.files(
-        path = "output/mse_results_500_1000_tp_wpos",
+        path = mse_outfolder,
         pattern = glob2rx(sprintf("mse_result_%s_*_%s.RData", graph_nr, n)),
         full.names = TRUE, recursive = FALSE
     )
@@ -57,7 +64,7 @@ mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {
 
 all_mse_results <- unlist(mse_results_per_graph, recursive = FALSE)
 
-outfile <- sprintf("output/mse_results_combined_%s_%s.txt", n_iter, n)
+outfile <- sprintf("output/mse_results_combined_%s_%s_%s_%s.txt", n_iter, n, pos_mode, indep_mode)
 cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
 cat("n:", n, "\n\n", file = outfile, append = TRUE)
 

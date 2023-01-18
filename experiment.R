@@ -13,6 +13,7 @@ library(mgcv)
 # - Perhaps select only datasets where naive fails.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
 # v Find other non-parametric weighted regression methods
+# v Can we assess performance on near-independence, so where Y -> S, but very weakly?
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
@@ -77,7 +78,9 @@ get_top_order <- function(amat) {
   return(top_order)
 }
 
-simulate_nonlinear <- function(amat, n, seed) {
+simulate_nonlinear <- function(amat, n, seed, pos_mode="pos", indep_mode="indep") {
+  stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
+  stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
   set.seed(seed)
   top_order <- get_top_order(amat)
   top_order <- top_order[top_order != "S"]
@@ -105,11 +108,14 @@ simulate_nonlinear <- function(amat, n, seed) {
     }
 
     S_parents <- get_parents("S", amat)
+    min_prob <- c("pos" = 1/20, "wpos" = 1/100, "npos" = 0)[pos_mode]
     all_data$pi <- apply(sapply(S_parents, function(parent) {
-      # sigmoid(scale(all_data[, parent]) * 10, 1 / 20, 1) # Positivity
-      sigmoid(scale(all_data[, parent]) * 10, 1 / 100, 1) # Weak positivity
-      # sigmoid(scale(all_data[, parent]) * 10, 0, 1) # No positivity
+      sigmoid(scale(all_data[, parent]) * 10, min_prob, 1)
     }), 1, prod)
+    
+    dep <- c("indep" = 0, "wdep" = 1/2, "dep" = 1)[indep_mode]
+    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, dep * min_prob + (1 - dep), 10)
+    
     all_data$S <- runif(n) < all_data$pi
 
     if (sum(all_data$S) < 50) {
@@ -317,12 +323,12 @@ plot_results <- function(all_data) {
   )
 }
 
-experiment <- function(graph_nr, iter, n = 900, plot_flag = FALSE) {
+experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "indep", plot_flag = FALSE) {
   seed <- 100000 * graph_nr + iter
 
   amat <- get_graph(graph_nr)
 
-  all_data <- simulate_nonlinear(amat, n, seed)
+  all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
 
   all_data <- cbind_predictions(all_data, amat)
 

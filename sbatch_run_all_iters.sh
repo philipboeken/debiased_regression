@@ -11,6 +11,6 @@
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT_80
 #
 
-# Run as: sbatch --a=1-<n_iter> sbatch_run_all_iters.sh <n_obs>
+# Run as: sbatch --array=1-<n_iter> sbatch_run_all_iters.sh <n_obs> <pos_mode=pos,wpos,npos> <indep_mode=indep,wdep,dep>
 
-Rscript run_iter.R $SLURM_ARRAY_TASK_ID $1
+Rscript run_iter.R $SLURM_ARRAY_TASK_ID $1 $2 $3

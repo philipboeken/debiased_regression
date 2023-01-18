@@ -12,6 +12,6 @@
 #
 #SBATCH --array=1-27
 
-# Run as: sbatch sbatch_make_figures_per_graph.sh <n_inter> <n_obs>
+# Run as: sbatch sbatch_make_figures_per_graph.sh <n_inter> <n_obs> <pos_mode> <indep_mode>
 
-Rscript make_figures_per_graph.R $SLURM_ARRAY_TASK_ID $1 $2
+Rscript make_figures_per_graph.R $SLURM_ARRAY_TASK_ID $1 $2 $3 $4
