@@ -24,6 +24,8 @@ yhat_ipw_true          1.1221e-01 (1.584e-02) 1.1046e+00 (1.659e+01) 9.5223e-01 
 yhat_ipw_true_clip_05  1.1221e-01 (1.584e-02) 1.1046e+00 (1.659e+01) 9.5223e-01 (1.631e+01) 9.9819e-01 (1.549e+01) 1.0213e+00 (1.550e+01) 9.2955e-02 (1.121e-02) 1.0051e-01 (1.239e-02)
 yhat_ipw_true_clip_1   1.1221e-01 (1.584e-02) 1.1046e+00 (1.659e+01) 9.5223e-01 (1.631e+01) 9.9819e-01 (1.549e+01) 1.0213e+00 (1.550e+01) 9.2955e-02 (1.121e-02) 1.0051e-01 (1.239e-02)
 
+Graphs where IPW is better than naive: almost all graphs where S does not depend directly on X
+1, 2, 5, 6, 12, 14, 15, 16, 20, 26
 
 Graph 1 
                                    y_selected                      y              yhat_true           yhat_imputed                  y_mix        y_weighted_true         y_weighted_est

@@ -24,6 +24,8 @@ yhat_ipw_true_trans_25 1.1997e-01 (1.680e-02) 1.7735e-01 (4.155e-02) 2.5618e-02 
 yhat_ipw_est_trans_25  1.1863e-01 (1.630e-02) 1.7902e-01 (4.282e-02) 2.7235e-02 (2.580e-03) 1.0623e-01 (2.728e-02) 1.3180e-01 (3.187e-02) 1.6148e-01 (3.744e-02) 1.6342e-01 (3.742e-02)
 yhat_naive             1.1484e-01 (1.486e-02) 1.9885e-01 (5.847e-02) 4.6831e-02 (8.225e-03) 1.2583e-01 (4.099e-02) 1.5145e-01 (4.635e-02) 1.8482e-01 (5.549e-02) 1.8647e-01 (5.374e-02)
 
+Always: Recursive better than IPW better than naive
+DR_est = IPW_est, so it can perfectly recover from the misspecification of the direct method
 
 Graph 1 
                                    y_selected                      y              yhat_true           yhat_imputed                  y_mix        y_weighted_true         y_weighted_est

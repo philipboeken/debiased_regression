@@ -16,6 +16,9 @@ library(mgcv)
 # v Can we assess performance on near-independence, so where Y -> S, but very weakly?
 # - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
 # - Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
+# - 3d plot waarom imputatie zo goed lukt.
+# - Lijst maken van conclusies die ik wil trekken.
+# - Compute MSE of P(S=1 | X, Z) for different graphs.
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
