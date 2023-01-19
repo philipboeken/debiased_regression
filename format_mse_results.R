@@ -62,14 +62,18 @@ mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {
     })
 })
 
-all_mse_results <- unlist(mse_results_per_graph, recursive = FALSE)
+save(mse_results_per_graph, 
+    file = sprintf("output/mse_results/mse_results_per_graph_%s_%s_%s_%s.RData", 
+                    n_iter, n, pos_mode, indep_mode))
 
-outfile <- sprintf("output/mse_results_combined_%s_%s_%s_%s.txt", n_iter, n, pos_mode, indep_mode)
+outfile <- sprintf("output/mse_results/mse_results_combined_%s_%s_%s_%s.txt",
+                    n_iter, n, pos_mode, indep_mode)
 cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
 cat("n:", n, "\n\n", file = outfile, append = TRUE)
 
 cat("All combined:", "\n", file = outfile, append = TRUE)
 
+all_mse_results <- unlist(mse_results_per_graph, recursive = FALSE)
 all_formatted <- get_mse_formatted(all_mse_results)
 
 write_table(all_formatted, file = outfile, append = TRUE)

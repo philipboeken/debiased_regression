@@ -109,14 +109,15 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
     }
 
     S_parents <- get_parents("S", amat)
-    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
     all_data$pi <- apply(sapply(S_parents, function(parent) {
-      sigmoid(scale(all_data[, parent]) * 10, min_prob, 1)
+      sigmoid(scale(all_data[, parent]) * 10)
     }), 1, prod)
 
     dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, dep * min_prob + (1 - dep), 1)
-    all_data$pi <- as.numeric(all_data$pi)
+    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1)
+
+	  min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
+    all_data$pi <- as.numeric(translate_between_values(all_data$pi, min_prob, 1))
 
     all_data$S <- runif(n) < all_data$pi
 
@@ -146,14 +147,14 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-cbind_recursive <- function(all_data, amat) {
+cbind_recursive <- function(all_data, amat, graph_known) {
   selected_data <- all_data[all_data$S, ]
 
   # Direct recursive (imputed) with gam
-  if ("Y" %in% get_parents("X", amat) || "X" %in% get_parents("Y", amat)) {
-    imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
-  } else {
+  if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
     imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
+  } else {
+    imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
   }
   all_data$y_imputed <- predict(imputation_model, data.frame(X = all_data$X, Z = all_data$Z))
   all_data$y_mix <- all_data$y_imputed
@@ -168,14 +169,14 @@ cbind_recursive <- function(all_data, amat) {
   return(all_data)
 }
 
-cbind_ipw <- function(all_data, amat) {
+cbind_ipw <- function(all_data, amat, graph_known) {
   selected_data <- all_data[all_data$S, ]
 
   # Estimate pi and calculate weights
-  if ("X" %in% get_parents("S", amat)) {
-    pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
-  } else {
+  if (graph_known && !"X" %in% get_parents("S", amat)) {
     pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
+  } else {
+    pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
   }
   all_data$pi_hat <- pi_model$fitted.values
   p_s <- sum(all_data$S) / length(all_data$S)
@@ -246,11 +247,11 @@ cbind_doubly_robust <- function(all_data) {
   return(all_data)
 }
 
-cbind_predictions <- function(all_data, amat) {
+cbind_predictions <- function(all_data, amat, graph_known) {
   all_data <- cbind_true(all_data)
   all_data <- cbind_naive(all_data)
-  all_data <- cbind_recursive(all_data, amat)
-  all_data <- cbind_ipw(all_data, amat)
+  all_data <- cbind_recursive(all_data, amat, graph_known)
+  all_data <- cbind_ipw(all_data, amat, graph_known)
   all_data <- cbind_doubly_robust(all_data)
 
   return(all_data)
@@ -325,14 +326,14 @@ plot_results <- function(all_data) {
   )
 }
 
-experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "indep", plot_flag = FALSE) {
+experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "indep", graph_known = FALSE, plot_flag = FALSE) {
   seed <- 100000 * graph_nr + iter
 
   amat <- get_graph(graph_nr)
 
   all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
 
-  all_data <- cbind_predictions(all_data, amat)
+  all_data <- cbind_predictions(all_data, amat, graph_known)
 
   if (plot_flag) {
     plot_results(all_data)
@@ -343,6 +344,6 @@ experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "
   return(mse_result)
 }
 
-# print(experiment(graph_nr = 17, iter = 6, n = 1000, pos_mode = "pos", indep_mode = "indep", plot_flag = TRUE))
+# print(experiment(graph_nr = 17, iter = 6, n = 1000, pos_mode = "pos", indep_mode = "indep", graph_known = FALSE, plot_flag = TRUE))
 
 

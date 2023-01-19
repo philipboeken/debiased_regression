@@ -27,25 +27,29 @@ Run mse experiments on hactar:
 ```
 #Run experiments: n_iter=500, n_obs=1000, with positivity (P(S=1 | X, Z) > 0) and independence Y _||_S | X, Z:
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos indep
-sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos wdep
-sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos dep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos indep
-sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos wdep
-sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos dep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos indep
-sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos wdep
+
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos dep
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos dep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos dep
 
-# Locally combine MSE results for results with n=2000: -->
-sbatch --wrap "Rscript format_mse_results.R 2000 npos indep"
-sbatch --wrap "Rscript format_mse_results.R 2000 npos wndep"
-sbatch --wrap "Rscript format_mse_results.R 2000 npos dep"
-sbatch --wrap "Rscript format_mse_results.R 2000 pos indep"
-sbatch --wrap "Rscript format_mse_results.R 2000 pos wndep"
-sbatch --wrap "Rscript format_mse_results.R 2000 pos dep"
-sbatch --wrap "Rscript format_mse_results.R 2000 wpos indep"
-sbatch --wrap "Rscript format_mse_results.R 2000 wpos wndep"
-sbatch --wrap "Rscript format_mse_results.R 2000 wpos dep"
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos wdep
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos wdep
+sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos wdep
+
+# Locally combine MSE results for results with n=1000: -->
+Rscript format_mse_results.R 1000 npos indep
+Rscript format_mse_results.R 1000 pos indep
+Rscript format_mse_results.R 1000 wpos indep
+
+Rscript format_mse_results.R 1000 npos wdep
+Rscript format_mse_results.R 1000 pos wdep
+Rscript format_mse_results.R 1000 wpos wdep
+
+Rscript format_mse_results.R 1000 npos dep
+Rscript format_mse_results.R 1000 pos dep
+Rscript format_mse_results.R 1000 wpos dep
 ```
 
 Copying files from hactar to local:
