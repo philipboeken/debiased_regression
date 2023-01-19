@@ -15,6 +15,7 @@ library(mgcv)
 # v Find other non-parametric weighted regression methods
 # v Can we assess performance on near-independence, so where Y -> S, but very weakly?
 # - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
+# - Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
