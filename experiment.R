@@ -14,6 +14,7 @@ library(mgcv)
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
 # v Find other non-parametric weighted regression methods
 # v Can we assess performance on near-independence, so where Y -> S, but very weakly?
+# - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
@@ -116,7 +117,7 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
     dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
     all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1)
 
-	  min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
+    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
     all_data$pi <- as.numeric(translate_between_values(all_data$pi, min_prob, 1))
 
     all_data$S <- runif(n) < all_data$pi
@@ -147,7 +148,8 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-cbind_recursive <- function(all_data, amat, graph_known) {
+cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL) {
+  stopifnot(!(graph_known && is.null(amat)))
   selected_data <- all_data[all_data$S, ]
 
   # Direct recursive (imputed) with gam
@@ -169,7 +171,8 @@ cbind_recursive <- function(all_data, amat, graph_known) {
   return(all_data)
 }
 
-cbind_ipw <- function(all_data, amat, graph_known) {
+cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
+  stopifnot(!(graph_known && is.null(amat)))
   selected_data <- all_data[all_data$S, ]
 
   # Estimate pi and calculate weights
@@ -247,11 +250,13 @@ cbind_doubly_robust <- function(all_data) {
   return(all_data)
 }
 
-cbind_predictions <- function(all_data, amat, graph_known) {
+cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
+  stopifnot(!(graph_known && is.null(amat)))
+
   all_data <- cbind_true(all_data)
   all_data <- cbind_naive(all_data)
-  all_data <- cbind_recursive(all_data, amat, graph_known)
-  all_data <- cbind_ipw(all_data, amat, graph_known)
+  all_data <- cbind_recursive(all_data, graph_known, amat)
+  all_data <- cbind_ipw(all_data, graph_known, amat)
   all_data <- cbind_doubly_robust(all_data)
 
   return(all_data)
@@ -326,14 +331,17 @@ plot_results <- function(all_data) {
   )
 }
 
-experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "indep", graph_known = FALSE, plot_flag = FALSE) {
+experiment <- function(
+    graph_nr, iter, n = 900,
+    pos_mode = "pos", indep_mode = "indep",
+    graph_known = FALSE, plot_flag = FALSE) {
   seed <- 100000 * graph_nr + iter
 
   amat <- get_graph(graph_nr)
 
   all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
 
-  all_data <- cbind_predictions(all_data, amat, graph_known)
+  all_data <- cbind_predictions(all_data, graph_known, amat)
 
   if (plot_flag) {
     plot_results(all_data)
@@ -344,6 +352,14 @@ experiment <- function(graph_nr, iter, n = 900, pos_mode = "pos", indep_mode = "
   return(mse_result)
 }
 
-# print(experiment(graph_nr = 17, iter = 6, n = 1000, pos_mode = "pos", indep_mode = "indep", graph_known = FALSE, plot_flag = TRUE))
+print(experiment(
+  graph_nr = 1, iter = 1, n = 1000,
+  pos_mode = "pos", indep_mode = "indep",
+  graph_known = FALSE, plot_flag = TRUE
+))
 
-
+print(experiment(
+  graph_nr = 1, iter = 1, n = 1000,
+  pos_mode = "pos", indep_mode = "indep",
+  graph_known = TRUE, plot_flag = TRUE
+))
