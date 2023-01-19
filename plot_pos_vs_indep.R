@@ -10,7 +10,7 @@ n <- as.numeric(args[3])
 graph_known <- as.integer(args[4])
 graph_known <- as.logical(if(is.na(graph_known)) 0 else graph_known)
 
-pdf(sprintf("output/figures/pos_indep_grid/figure_%s_%s_%s.pdf", graph_nr, iter, n), width = 15, height = 10)
+pdf(sprintf("output/figures/pos_indep_grid/figure_%s_%s_%s_%s.pdf", graph_nr, iter, n, graph_known), width = 15, height = 10)
 par(mfrow = c(3, 3))
 for (pos_mode in c("pos", "wpos", "npos")) {
   for (indep_mode in c("indep", "wdep", "dep")) {

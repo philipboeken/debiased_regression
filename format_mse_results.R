@@ -1,4 +1,4 @@
-# Run as: Rscript format_mse_results.R <n_obs> <pos_mode> <indep_mode>
+# Run as: Rscript format_mse_results.R <n_obs> <pos_mode> <indep_mode> <graph_known>
 
 source("experiment.R")
 
@@ -45,8 +45,10 @@ n_iter <- numeric(1)
 n <- as.numeric(args[1])
 pos_mode <- as.character(args[2])
 indep_mode <- as.character(args[3])
+graph_known <- as.integer(args[4])
+graph_known <- as.logical(if(is.na(graph_known)) 0 else graph_known)
 
-mse_outfolder <- sprintf("output/mse_results/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
+mse_outfolder <- sprintf("output/mse_results/mse_results_%s_%s_%s_%s", n, pos_mode, indep_mode, graph_known)
 
 load("data/valid_graphs.RData")
 mse_results_per_graph <- lapply(1:nrow(valid_graphs), function(graph_nr) {
