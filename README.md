@@ -25,7 +25,7 @@ sbatch sbatch_make_figures_per_graph.sh 25 1000 npos dep
 
 Run mse experiments on hactar:
 ```
-#Run experiments: n_iter=500, n_obs=1000, with positivity (P(S=1 | X, Z) > 0) and independence Y _||_S | X, Z:
+# Run experiments: n_iter=500, n_obs=1000, with positivity (P(S=1 | X, Z) > 0) and independence Y _||_S | X, Z:
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos indep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos wdep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 npos dep

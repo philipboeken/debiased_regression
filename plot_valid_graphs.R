@@ -34,20 +34,19 @@ if (file.exists("data/valid_graphs.RData")) {
     amat <- matrix(as.numeric(opts[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     g <- as(t(amat), "graphNEL")
-    john.pairs <- RBGL::johnson.all.pairs.sp(g)
     if (!isValidGraph(amat, type = "dag")) {
       return()
     }
     if (sum(amat[, "S"]) > 0) {
       return()
     }
-    if (dsep("X", "Y", g = g, john.pairs = john.pairs) ||
-      dsep("Y", "S", g = g, john.pairs = john.pairs) ||
-      dsep("Y", "S", "X", g = g, john.pairs = john.pairs) ||
-      !dsep("Y", "S", c("X", "Z"), g = g, john.pairs = john.pairs)) {
-      return()
+    john.pairs <- RBGL::johnson.all.pairs.sp(g)
+    if (!dsep("X", "Y", g = g, john.pairs = john.pairs) &&
+      !dsep("Y", "S", g = g, john.pairs = john.pairs) &&
+      !dsep("Y", "S", "X", g = g, john.pairs = john.pairs) &&
+      dsep("Y", "S", c("X", "Z"), g = g, john.pairs = john.pairs)) {
+      valid_graphs <<- rbind(valid_graphs, data.frame(opts[i, ]))
     }
-    valid_graphs <<- rbind(valid_graphs, data.frame(opts[i, ]))
   })
   save(valid_graphs, file = "data/valid_graphs.RData")
 }
