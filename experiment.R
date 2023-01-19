@@ -352,14 +352,8 @@ experiment <- function(
   return(mse_result)
 }
 
-print(experiment(
-  graph_nr = 1, iter = 1, n = 1000,
-  pos_mode = "pos", indep_mode = "indep",
-  graph_known = FALSE, plot_flag = TRUE
-))
-
-print(experiment(
-  graph_nr = 1, iter = 1, n = 1000,
-  pos_mode = "pos", indep_mode = "indep",
-  graph_known = TRUE, plot_flag = TRUE
-))
+# print(experiment(
+#   graph_nr = 1, iter = 1, n = 1000,
+#   pos_mode = "pos", indep_mode = "indep",
+#   graph_known = FALSE, plot_flag = TRUE
+# ))
