@@ -1,4 +1,6 @@
 .DS_Store
+temp*
+output/mse_old
 
 #######################
 ### R related files ###
