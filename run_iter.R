@@ -13,7 +13,7 @@ cat("\nStarting run_iter.R", args, "at", format(start), "\n")
 
 source("experiment.R")
 
-mse_outfolder <- sprintf("./output/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
+mse_outfolder <- sprintf("./output/mse_results/mse_results_%s_%s_%s", n, pos_mode, indep_mode)
 dir.create(mse_outfolder, showWarnings = FALSE)
 file.copy("output/figures/.gitignore", mse_outfolder)
 
