@@ -1,4 +1,4 @@
-# Run as: Rscript run_iter.R <iter> <n_obs> <pos_mode> <indep_mode>
+# Run as: Rscript run_iter.R <iter> <n_obs> <pos_mode> <indep_mode> <graph_known=0,1>
 
 args <- commandArgs(trailingOnly = TRUE)
 
@@ -6,6 +6,8 @@ iter <- as.numeric(args[1])
 n <- as.numeric(args[2])
 pos_mode <- as.character(args[3])
 indep_mode <- as.character(args[4])
+graph_known <- as.integer(args[5])
+graph_known <- as.logical(if(is.na(graph_known)) 0 else graph_known)
 
 start <- Sys.time()
 
@@ -18,7 +20,7 @@ dir.create(mse_outfolder, showWarnings = FALSE)
 file.copy("output/figures/.gitignore", mse_outfolder)
 
 for (graph_nr in 1:27) {
-    mse_result <- experiment(graph_nr, iter, n, pos_mode, indep_mode)
+    mse_result <- experiment(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
     outfile <- sprintf("%s/mse_result_%s_%s_%s", mse_outfolder, graph_nr, iter, n)
     save(mse_result, file = sprintf("%s.RData", outfile))
 }
