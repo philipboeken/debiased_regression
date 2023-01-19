@@ -114,11 +114,13 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
       sigmoid(scale(all_data[, parent]) * 10)
     }), 1, prod)
 
-    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data$pi <- all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1)
-
+	  # Scale selection probabilities between a lower bound and 1, to control positivity.
     min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-    all_data$pi <- as.numeric(translate_between_values(all_data$pi, min_prob, 1))
+    all_data$pi <- translate_between_values(all_data$pi, min_prob, 1)
+
+    # Let selection probabilities depend on Y (where we can have no positivity in the Y-direction)
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+    all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
 
     all_data$S <- runif(n) < all_data$pi
 
