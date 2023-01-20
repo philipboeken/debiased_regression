@@ -2,6 +2,14 @@ source("gp_draw.R")
 library(mgcv)
 
 # TODO:
+# - Add file for making figures for the main story:
+#     - 3d plot waarom imputatie zo goed lukt.
+# - Improve naive method using causal vs anticausal, or ssl kernel regression.
+# - Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
+# - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
+# - Lijst maken van conclusies die ik wil trekken
+#     - Identify for which graphs any method fails, or where naive has much bias.
+#     - Perhaps select only datasets where naive fails.
 # v Better tuning of IPW (out of the box package, or better clipping: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3069059/)
 # v Check if GP regression depends on size of weights
 #       It does... There's a threshold, and for
@@ -9,16 +17,8 @@ library(mgcv)
 #       to any value below this threshold.
 #     So, mutliply with P(S=1) for completeness sake.
 # v Regress only on dependent vars for P(S=1|X, Z) and E[Y| X, Z, S=1]
-# - Identify for which graphs any method fails, or where naive has much bias.
-# - Perhaps select only datasets where naive fails.
-# - Improve naive method using causal vs anticausal, or ssl kernel regression.
 # v Find other non-parametric weighted regression methods
 # v Can we assess performance on near-independence, so where Y -> S, but very weakly?
-# - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
-# - Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
-# - 3d plot waarom imputatie zo goed lukt.
-# - Lijst maken van conclusies die ik wil trekken.
-# - Compute MSE of P(S=1 | X, Z) for different graphs.
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
