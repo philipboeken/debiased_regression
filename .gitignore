@@ -1,6 +1,7 @@
 .DS_Store
 temp*
 output/mse_old
+archive
 
 #######################
 ### R related files ###

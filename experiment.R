@@ -118,7 +118,7 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
       sigmoid(scale(all_data[, parent]) * 10)
     }), 1, prod)
 
-	  # Scale selection probabilities between a lower bound and 1, to control positivity.
+    # Scale selection probabilities between a lower bound and 1, to control positivity.
     min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
     all_data$pi <- translate_between_values(all_data$pi, min_prob, 1)
 
@@ -154,15 +154,23 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL) {
+cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
   selected_data <- all_data[all_data$S, ]
 
   # Direct recursive (imputed) with gam
   if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
-    imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
+    if(impute_linear) {
+      imputation_model <- lm(Y ~ Z, data = selected_data)
+    } else {
+      imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
+    }
   } else {
-    imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
+    if(impute_linear) {
+      imputation_model <- lm(Y ~ Z + X, data = selected_data)
+    } else {
+      imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
+    }
   }
   all_data$y_imputed <- predict(imputation_model, data.frame(X = all_data$X, Z = all_data$Z))
   all_data$y_mix <- all_data$y_imputed
@@ -293,48 +301,41 @@ get_mse_result <- function(all_data) {
   )
 }
 
-plot_results <- function(all_data) {
+plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs=.75) {
   selected_data <- all_data[all_data$S, ]
   rejected_data <- all_data[!all_data$S, ]
 
   ord <- order(all_data$X)
   par(mar = c(1, 1, 1, 1))
-  plot(range(all_data$X), range(all_data$Y),
-    type = "n",
-    xaxt = "n", yaxt = "n", ann = FALSE, frame.plot = FALSE
+  plot(rejected_data$X, rejected_data$Y,
+    pch = 16, cex = .75, col = "grey",
+    xlim = xlim, ylim = ylim,
+    xaxt = "n", yaxt = "n",
+    ann = FALSE, frame.plot = FALSE
   )
-  points(rejected_data$X, rejected_data$Y, pch = 16, cex = .75, col = "grey")
-  points(selected_data$X, selected_data$Y, pch = 16, cex = .75)
-  points(rejected_data$X, rejected_data$y_imputed,
-    pch = 3, cex = .75, col = "#D55E00"
+  points(selected_data$X, selected_data$Y, pch = 16, cex = weights_obs)
+  if ("y_imputed" %in% colnames(rejected_data)) {
+    points(rejected_data$X, rejected_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
+  }
+  palette <- c(
+    "yhat_true" = "#009E73",
+    "yhat_naive" = "#000000",
+    "yhat_recursive" = "#D55E00",
+    "yhat_ipw_true" = "#0072B2",
+    "yhat_true_trans_25" = "#0072B2",
+    "yhat_ipw_est" = "#56B4E9",
+    "yhat_ipw_est_trans_25" = "#56B4E9",
+    "yhat_dr_true" = "#F0E442",
+    "yhat_dr_est" = "#E69F00"
   )
-  lines(all_data$X[ord], all_data$yhat_true[ord],
-    pch = 16, col = "#009E73", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_naive[ord],
-    pch = 16, col = "#000000", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_recursive[ord],
-    pch = 16, col = "#D55E00", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_ipw_true[ord],
-    pch = 16, col = "#0072B2", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_ipw_true_trans_25[ord],
-    pch = 16, col = "#0072B2", lwd = 2.5, lty = 2
-  )
-  lines(all_data$X[ord], all_data$yhat_ipw_est[ord],
-    pch = 16, col = "#56B4E9", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_ipw_est_trans_25[ord],
-    pch = 16, col = "#56B4E9", lwd = 2.5, lty = 2
-  )
-  lines(all_data$X[ord], all_data$yhat_dr_true[ord],
-    pch = 16, col = "#F0E442", lwd = 2.5
-  )
-  lines(all_data$X[ord], all_data$yhat_dr_est[ord],
-    pch = 16, col = "#E69F00", lwd = 2.5
-  )
+  for (method in names(palette)) {
+    if (method %in% colnames(all_data)) {
+      lty <- if (endsWith(method, "_trans_25")) 2 else 1
+      lines(all_data$X[ord], all_data[ord, method],
+        pch = 16, col = palette[method], lwd = 2.5, lty = lty
+      )
+    }
+  }
 }
 
 experiment <- function(
