@@ -6,7 +6,7 @@ library(mgcv)
 #     - 3d plot waarom imputatie zo goed lukt.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
 # v Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
-#       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE, 
+#       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE,
 #         which is the only setting where IPW works better than naive.
 # - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
 # - Lijst maken van conclusies die ik wil trekken
@@ -38,7 +38,7 @@ clip_lower_quantile <- function(probs, q) {
   probs
 }
 
-translate_between_values <- function(probs, min_value, max_value = 1) {
+trans_linear <- function(probs, min_value, max_value = 1) {
   probs <- probs - min(probs)
   (probs / max(probs)) * (max_value - min_value) + min_value
 }
@@ -122,7 +122,7 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
 
     # Scale selection probabilities between a lower bound and 1, to control positivity.
     min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-    all_data$pi <- translate_between_values(all_data$pi, min_prob, 1)
+    all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
 
     # Let selection probabilities depend on Y (where we can have no positivity in the Y-direction)
     dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
@@ -162,13 +162,13 @@ cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL, impute_l
 
   # Direct recursive (imputed) with gam
   if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
-    if(impute_linear) {
+    if (impute_linear) {
       imputation_model <- lm(Y ~ Z, data = selected_data)
     } else {
       imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
     }
   } else {
-    if(impute_linear) {
+    if (impute_linear) {
       imputation_model <- lm(Y ~ Z + X, data = selected_data)
     } else {
       imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
@@ -203,16 +203,16 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   all_data$weights_est_clip_05 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.05)
   all_data$weights_est_clip_1 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.1)
   all_data$weights_est_clip_25 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.25)
-  all_data$weights_est_trans_05 <- p_s / translate_between_values(all_data$pi_hat, 0.05, 1)
-  all_data$weights_est_trans_1 <- p_s / translate_between_values(all_data$pi_hat, 0.1, 1)
-  all_data$weights_est_trans_25 <- p_s / translate_between_values(all_data$pi_hat, 0.25, 1)
+  all_data$weights_est_trans_05 <- p_s / trans_linear(all_data$pi_hat, 0.05, 1)
+  all_data$weights_est_trans_1 <- p_s / trans_linear(all_data$pi_hat, 0.1, 1)
+  all_data$weights_est_trans_25 <- p_s / trans_linear(all_data$pi_hat, 0.25, 1)
   all_data$weights_true <- p_s / all_data$pi
   all_data$weights_true_clip_05 <- p_s / clip_lower_quantile(all_data$pi, 0.05)
   all_data$weights_true_clip_1 <- p_s / clip_lower_quantile(all_data$pi, 0.1)
   all_data$weights_true_clip_25 <- p_s / clip_lower_quantile(all_data$pi, 0.25)
-  all_data$weights_true_trans_05 <- p_s / translate_between_values(all_data$pi, 0.05, 1)
-  all_data$weights_true_trans_1 <- p_s / translate_between_values(all_data$pi, 0.1, 1)
-  all_data$weights_true_trans_25 <- p_s / translate_between_values(all_data$pi, 0.25, 1)
+  all_data$weights_true_trans_05 <- p_s / trans_linear(all_data$pi, 0.05, 1)
+  all_data$weights_true_trans_1 <- p_s / trans_linear(all_data$pi, 0.1, 1)
+  all_data$weights_true_trans_25 <- p_s / trans_linear(all_data$pi, 0.25, 1)
   selected_data <- all_data[all_data$S, ]
 
   # IPW with estimated weights
@@ -314,7 +314,7 @@ get_mse_result <- function(all_data) {
   )
 }
 
-plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs=.75) {
+plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs = .75) {
   selected_data <- all_data[all_data$S, ]
   rejected_data <- all_data[!all_data$S, ]
 
