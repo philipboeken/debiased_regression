@@ -2,8 +2,8 @@ source("gp_draw.R")
 library(mgcv)
 
 # TODO:
-# - Add file for making figures for the main story:
-#     - 3d plot waarom imputatie zo goed lukt.
+# v Add file for making figures for the main story:
+#     v 3d plot waarom imputatie zo goed lukt.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
 # v Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
 #       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE,
@@ -247,32 +247,38 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   all_data$yhat_ipw_true_trans_1 <- predict(ipw_model_true_trans_1, data.frame(X = all_data$X))
   all_data$yhat_ipw_true_trans_25 <- predict(ipw_model_true_trans_25, data.frame(X = all_data$X))
 
-  all_data$yhat_ipw_est_clipped <- all_data$yhat_ipw_est_trans_05
+  all_data$weights_true_clipped <- all_data$weights_true_trans_05
   all_data$yhat_ipw_true_clipped <- all_data$yhat_ipw_true_trans_05
+  all_data$weights_est_clipped <- all_data$weights_est_trans_05
+  all_data$yhat_ipw_est_clipped <- all_data$yhat_ipw_est_trans_05
 
   return(all_data)
 }
 
-cbind_doubly_robust <- function(all_data) {
-  # Doubly Robust
-  all_data$resid_naive <- all_data$Y - all_data$yhat_naive
+cbind_doubly_robust <- function(all_data, direct_method = "yhat_recursive_mix") {
+  stopifnot(all(c(direct_method, c(
+    "weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped"
+  )) %in% colnames(all_data)))
+  
+  all_data$yhat_dr_direct <- all_data[, direct_method]
+  all_data$dr_resid <- all_data$Y - all_data$yhat_dr_direct
   selected_data <- all_data[all_data$S, ]
 
-  resid_ipw_model_est <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
+  resid_ipw_model_est <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
   all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X = all_data$X))
-  all_data$yhat_dr_est <- all_data$yhat_naive + all_data$residhat_ipw_est
+  all_data$yhat_dr_est <- all_data$yhat_dr_direct + all_data$residhat_ipw_est
 
-  resid_ipw_model_est_clipped <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clipped)
+  resid_ipw_model_est_clipped <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clipped)
   all_data$residhat_ipw_est_clipped <- predict(resid_ipw_model_est_clipped, data.frame(X = all_data$X))
-  all_data$yhat_dr_est_clipped <- all_data$yhat_naive + all_data$residhat_ipw_est_clipped
+  all_data$yhat_dr_est_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_est_clipped
 
-  resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
+  resid_ipw_model_true <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
   all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X = all_data$X))
-  all_data$yhat_dr_true <- all_data$yhat_naive + all_data$residhat_ipw_true
+  all_data$yhat_dr_true <- all_data$yhat_dr_direct + all_data$residhat_ipw_true
 
-  resid_ipw_model_true_clipped <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clipped)
+  resid_ipw_model_true_clipped <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clipped)
   all_data$residhat_ipw_true_clipped <- predict(resid_ipw_model_true_clipped, data.frame(X = all_data$X))
-  all_data$yhat_dr_true_clipped <- all_data$yhat_naive + all_data$residhat_ipw_true_clipped
+  all_data$yhat_dr_true_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_true_clipped
 
   return(all_data)
 }
@@ -314,7 +320,35 @@ get_mse_result <- function(all_data) {
   )
 }
 
-plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs = .75) {
+palette <- c(
+  "yhat_true" = "#009E73",
+  "yhat_naive" = "#000000",
+  "yhat_recursive_mix" = "#D55E00",
+  "yhat_ipw_true" = "#0072B2",
+  # "yhat_ipw_true_clipped" = "#0072B2",
+  "yhat_ipw_est" = "#56B4E9",
+  # "yhat_ipw_est_clipped" = "#56B4E9",
+  "yhat_dr_true" = "#E69F00",
+  # "yhat_dr_true_clipped" = "#E69F00",
+  "yhat_dr_est" = "#F0E442"
+  # "yhat_dr_est_clipped" = "#F0E442"
+)
+
+legend_labels <- c(
+  "yhat_true" = "True",
+  "yhat_naive" = "Naive",
+  "yhat_recursive_mix" = "Recursive",
+  "yhat_ipw_true" = "IPW (true)",
+  "yhat_ipw_true_clipped" = "IPW (true, clipped)",
+  "yhat_ipw_est" = "IPW (est.)",
+  "yhat_ipw_est_clipped" = "IPW (est., clipped)",
+  "yhat_dr_true" = "Doubly Robust (true)",
+  "yhat_dr_true_clipped" = "Doubly Robust (true, clipped)",
+  "yhat_dr_est" = "Doubly Robust (est.)",
+  "yhat_dr_est_clipped" = "Doubly Robust (est., clipped)"
+)
+
+plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs = .75, legend_flag = FALSE) {
   selected_data <- all_data[all_data$S, ]
   rejected_data <- all_data[!all_data$S, ]
 
@@ -330,19 +364,7 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
   if ("y_imputed" %in% colnames(rejected_data)) {
     points(rejected_data$X, rejected_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
   }
-  palette <- c(
-    "yhat_true" = "#009E73",
-    "yhat_naive" = "#000000",
-    "yhat_recursive_mix" = "#D55E00",
-    "yhat_ipw_true" = "#0072B2",
-    "yhat_ipw_true_clipped" = "#0072B2",
-    "yhat_ipw_est" = "#56B4E9",
-    "yhat_ipw_est_clipped" = "#56B4E9",
-    "yhat_dr_true" = "#F0E442",
-    "yhat_dr_true_clipped" = "#F0E442",
-    "yhat_dr_est" = "#E69F00",
-    "yhat_dr_est_clipped" = "#E69F00"
-  )
+
   for (method in names(palette)) {
     if (method %in% colnames(all_data)) {
       lty <- if (endsWith(method, "_clipped")) 2 else 1
@@ -350,6 +372,15 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
         pch = 16, col = palette[method], lwd = 2.5, lty = lty
       )
     }
+  }
+
+  if (legend_flag) {
+    items <- intersect(names(palette), colnames(all_data))
+    lty <- sapply(items, function(method) if (endsWith(method, "_clipped")) 2 else 1)
+    legend("bottomright",
+      legend = legend_labels[items], col = palette[items],
+      lty = lty, lwd = 2.5, inset = 0.01, bg = "white"
+    )
   }
 }
 

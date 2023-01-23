@@ -10,7 +10,6 @@ n <- 400
 
 ################################################
 # Simulate data
-
 f_Z <- function(x) 3 * sin(x)
 f_Y <- function(x, z) z + x / 2
 sd_X <- 3
@@ -33,7 +32,7 @@ selected_data <- all_data[all_data$S, ]
 all_data$yhat_true <- ftrue(all_data$X)
 all_data <- cbind_naive(all_data)
 if (save_figs) pdf("output/figures/example/1_true_and_naive.pdf", width = 6, height = 4)
-plot_results(all_data)
+plot_results(all_data, legend_flag = TRUE)
 if (save_figs) dev.off()
 
 ################################################
@@ -64,7 +63,7 @@ print(lm(Y ~ X + Z, data = selected_data)$coefficients)
 ################################################
 # Plot recursive method
 if (save_figs) pdf("output/figures/example/2b_imputed.pdf", width = 6, height = 4)
-plot_results(all_data)
+plot_results(all_data, legend_flag = TRUE)
 if (save_figs) dev.off()
 
 ################################################
@@ -73,7 +72,8 @@ all_data <- cbind_ipw(all_data)
 selected_data <- all_data[all_data$S, ]
 if (save_figs) pdf("output/figures/example/3_ipw_estimated_weights.pdf", width = 6, height = 4)
 plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_ipw_est")],
-  weights_obs = trans_linear(selected_data$weights_est, 0.75, max(selected_data$weights_est) * 3 / 5)
+  weights_obs = trans_linear(selected_data$weights_est, 0.75, max(selected_data$weights_est) * 3 / 5),
+  legend_flag = TRUE
 )
 if (save_figs) dev.off()
 
@@ -81,30 +81,36 @@ if (save_figs) dev.off()
 # Plot IPW estimator with known probabilities
 if (save_figs) pdf("output/figures/example/4_ipw_true_weights.pdf", width = 6, height = 4)
 plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_ipw_true")],
-  weights_obs = trans_linear(selected_data$weights_true, 0.75, max(selected_data$weights_true) * 3 / 5)
+  weights_obs = trans_linear(selected_data$weights_true, 0.75, max(selected_data$weights_true) * 3 / 5), 
+  legend_flag = TRUE
 )
 if (save_figs) dev.off()
 
 ################################################
-# Plot naive, the IPW estimated residuals,
-# and the resulting doubly robust estimator
-all_data <- cbind_doubly_robust(all_data)
+# Plot naive, the IPW estimated residuals, and the doubly robust estimator
+all_data <- cbind_doubly_robust(all_data, direct_method = "yhat_naive")
 selected_data <- all_data[all_data$S, ]
-offset <- max(selected_data$resid_naive) - min(all_data$Y) + 5
+offset <- max(selected_data$dr_resid) - min(all_data$Y) + 5
 ord <- order(all_data$X)
 if (save_figs) pdf("output/figures/example/5_dr_true_weights.pdf", width = 6, height = 4)
-plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_dr_est")],
-  ylim = c(min(all_data$Y) - offset, max(all_data$Y))
+plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_dr_true")],
+  ylim = c(min(all_data$Y) - offset, max(all_data$Y)), legend_flag = FALSE
 )
-points(selected_data$X, selected_data$resid_naive - offset, pch = 1, col = "black",
+points(selected_data$X, selected_data$dr_resid - offset, pch = 16, col = "black",
        cex =  trans_linear(selected_data$weights_true, 0.75, max(selected_data$weights_true) * 3 / 5))
-lines(all_data$X[ord], all_data$residhat_ipw_est[ord] - offset, col = "#F0E442", lwd = 2.5)
+lines(all_data$X[ord], all_data$residhat_ipw_true[ord] - offset, col = "#F0E442", lwd = 2.5)
+items <- c("yhat_true", "yhat_naive", "yhat_dr_true")
+legend_labels_temp <- legend_labels
+legend_labels_temp["yhat_dr_true"] <- "Doubly Robust"
+legend("right", legend = c(legend_labels_temp[items], "Residuals"), col = c(palette[items], "#F0E442"),
+        lty = 1, lwd = 2.5, inset = 0.01, bg = "white"
+)
 if (save_figs) dev.off()
 
 ################################################
 # Plot overview of naive, imputed, IPW and DR estimates
 if (save_figs) pdf("output/figures/example/6_overview.pdf", width = 6, height = 4)
-plot_results(all_data)
+plot_results(all_data, legend_flag = TRUE)
 if (save_figs) dev.off()
 
 ######################## Plot 3D ########################
