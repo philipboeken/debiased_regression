@@ -5,7 +5,9 @@ library(mgcv)
 # - Add file for making figures for the main story:
 #     - 3d plot waarom imputatie zo goed lukt.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
-# - Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
+# v Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
+#       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE, 
+#         which is the only setting where IPW works better than naive.
 # - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
 # - Lijst maken van conclusies die ik wil trekken
 #     - Identify for which graphs any method fails, or where naive has much bias.
@@ -245,6 +247,9 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   all_data$yhat_ipw_true_trans_1 <- predict(ipw_model_true_trans_1, data.frame(X = all_data$X))
   all_data$yhat_ipw_true_trans_25 <- predict(ipw_model_true_trans_25, data.frame(X = all_data$X))
 
+  all_data$yhat_ipw_est_clipped <- all_data$yhat_ipw_est_trans_05
+  all_data$yhat_ipw_true_clipped <- all_data$yhat_ipw_true_trans_05
+
   return(all_data)
 }
 
@@ -257,9 +262,17 @@ cbind_doubly_robust <- function(all_data) {
   all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X = all_data$X))
   all_data$yhat_dr_est <- all_data$yhat_naive + all_data$residhat_ipw_est
 
+  resid_ipw_model_est_clipped <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clipped)
+  all_data$residhat_ipw_est_clipped <- predict(resid_ipw_model_est_clipped, data.frame(X = all_data$X))
+  all_data$yhat_dr_est_clipped <- all_data$yhat_naive + all_data$residhat_ipw_est_clipped
+
   resid_ipw_model_true <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
   all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X = all_data$X))
   all_data$yhat_dr_true <- all_data$yhat_naive + all_data$residhat_ipw_true
+
+  resid_ipw_model_true_clipped <- gam(resid_naive ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clipped)
+  all_data$residhat_ipw_true_clipped <- predict(resid_ipw_model_true_clipped, data.frame(X = all_data$X))
+  all_data$yhat_dr_true_clipped <- all_data$yhat_naive + all_data$residhat_ipw_true_clipped
 
   return(all_data)
 }
@@ -320,17 +333,19 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
   palette <- c(
     "yhat_true" = "#009E73",
     "yhat_naive" = "#000000",
-    "yhat_recursive" = "#D55E00",
+    "yhat_recursive_mix" = "#D55E00",
     "yhat_ipw_true" = "#0072B2",
-    "yhat_true_trans_25" = "#0072B2",
+    "yhat_ipw_true_clipped" = "#0072B2",
     "yhat_ipw_est" = "#56B4E9",
-    "yhat_ipw_est_trans_25" = "#56B4E9",
+    "yhat_ipw_est_clipped" = "#56B4E9",
     "yhat_dr_true" = "#F0E442",
-    "yhat_dr_est" = "#E69F00"
+    "yhat_dr_true_clipped" = "#F0E442",
+    "yhat_dr_est" = "#E69F00",
+    "yhat_dr_est_clipped" = "#E69F00"
   )
   for (method in names(palette)) {
     if (method %in% colnames(all_data)) {
-      lty <- if (endsWith(method, "_trans_25")) 2 else 1
+      lty <- if (endsWith(method, "_clipped")) 2 else 1
       lines(all_data$X[ord], all_data[ord, method],
         pch = 16, col = palette[method], lwd = 2.5, lty = lty
       )

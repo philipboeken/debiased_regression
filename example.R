@@ -10,9 +10,7 @@ save_figs <- FALSE
 # save_figs <- TRUE
 
 n <- 700
-f_Z <- function(x) 3 * sin(x) + x
 f_Z <- function(x) 3 * sin(x)
-f_Y <- function(x, z) z - 2*x
 f_Y <- function(x, z) z + x / 2
 sd_X <- 3
 sd_Z <- 2
@@ -21,7 +19,8 @@ sd_Y <- 2
 # X <- runif(n, -7, 7)
 all_data <- data.frame(X = rnorm(n, 0, sd_X))
 all_data$Z <- f_Z(all_data$X) + rnorm(n, 0, sd_Z)
-all_data$Y <- f_Y(all_data$X, all_data$Z) + rnorm(n, 0, sd_Y)
+all_data$eps_Y <- rnorm(n, 0, sd_Y)
+all_data$Y <- f_Y(all_data$X, all_data$Z) + all_data$eps_Y
 ftrue <- function(x) f_Y(x, f_Z(x))
 
 # P_S <- function(z) bump(x, 10, 1 / 10, 1) * bump(z, 10, 1 / 10, 1)
@@ -29,6 +28,8 @@ all_data$pi <- (all_data$X < (mean(all_data$X) + 2)) *
   translate_between_values(sigmoid(as.numeric(scale(all_data$Z)*20)), 1/20, 1)
 all_data$S <- runif(n) < all_data$pi
 selected_data <- all_data[all_data$S, ]
+
+ord <- order(all_data$X)
 
 # Plot true and naive fit
 all_data$yhat_true <- ftrue(all_data$X)
@@ -39,8 +40,29 @@ if(save_figs) dev.off()
 
 # Plot imputed values, and direct recursive method, for GAM
 all_data <- cbind_recursive(all_data, impute_linear = FALSE)
+if(save_figs) pdf("output/figures/example/2a_imputed.pdf", width = 6, height = 4)
+offsets_y <- c(25, 45, 62)
+loc_x <- min(all_data$X) - 3
+
+plot_results(all_data[, c("X", "Y", "S", "y_imputed")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) +  max(offsets_y)))
+
+text(loc_x , mean(all_data$eps_Y) + offsets_y[3], latex2exp::TeX("$\\epsilon_Y$"), cex=2, pos=3,col="black") 
+points(all_data$X, all_data$eps_Y + offsets_y[3], cex=.75, pch=16, col="gray")
+text(mean(all_data$X), 48,  "+", cex=2, pos=3,col="black") 
+
+text(loc_x, mean(all_data$X/2) + offsets_y[2], "X/2", cex=2, pos=3,col="black") 
+points(all_data$X, all_data$X/2 + offsets_y[2], cex=.75, pch=16)
+text(mean(all_data$X), 34,  "+", cex=2, pos=3,col="black") 
+
+text(loc_x, mean(all_data$Z) + offsets_y[1], "Z", cex=2, pos=3,col="black") 
+points(all_data$X, all_data$Z + offsets_y[1], cex=.75, pch=16)
+text(mean(all_data$X), 10,  "=", cex=2, pos=3,col="black") 
+text(loc_x, mean(all_data$Y), "Y", cex=2, pos=3,col="black") 
+if(save_figs) dev.off()
+
 print(lm(Y ~ X + Z, data=selected_data)$coefficients)
-if(save_figs) pdf("output/figures/example/2_imputed.pdf", width = 6, height = 4)
+
+if(save_figs) pdf("output/figures/example/2b_imputed.pdf", width = 6, height = 4)
 plot_results(all_data)
 if(save_figs) dev.off()
 
@@ -66,7 +88,6 @@ plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_dr_est
   ylim = c(min(all_data$Y) - offset, max(all_data$Y))
 )
 
-ord <- order(all_data$X)
 points(selected_data$X, selected_data$resid_naive - offset, pch=1, cex = selected_data$weights_true, col = "black")
 lines(all_data$X[ord], all_data$residhat_ipw_est[ord] - offset, col = "#F0E442", lwd = 2.5)
 if(save_figs) dev.off()
