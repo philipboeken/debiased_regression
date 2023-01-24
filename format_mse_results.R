@@ -63,8 +63,8 @@ write_mse_results_for_graph_range <- function(
     mse_results_per_graph, graph_range,
     n_iter, n, pos_mode, indep_mode, graph_known) {
     outfile <- sprintf(
-        "output/mse_results/mse_results_combined_%s_%s_%s_%s_%s.txt",
-        n_iter, n, pos_mode, indep_mode, graph_known
+        "output/mse_results/mse_results_combined_%s-%s_%s_%s_%s_%s_%s.txt",
+        min(graph_range), max(graph_range), n_iter, n, pos_mode, indep_mode, graph_known
     )
     cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
     cat("n:", n, "\n\n", file = outfile, append = TRUE)
