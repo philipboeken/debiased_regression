@@ -54,14 +54,14 @@ Rscript format_mse_results.R 1000 wpos dep
 Copying files from hactar to local:
 ```
 # Copy RData files from hactar to local:
-scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.RData' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
+scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.RData' ~/Documents/PhD/debiased_regression/output/mse_results
 
 # Copy txt files from hactar to local:
-scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.txt' ~/Documents/PhD/Missingness_regression/debiased_regression/output/mse_results
+scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/mse_results/*.txt' ~/Documents/PhD/debiased_regression/output/mse_results
 
 # Copy figures from hactar to local:
-scp -rp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/figures' ~/Documents/PhD/Missingness_regression/debiased_regression/output
+scp -rp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/figures' ~/Documents/PhD/debiased_regression/output
 
 # Copy log and error files from hactar to local:
-scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/log/*' ~/Documents/PhD/Missingness_regression/debiased_regression/output/log
+scp 'pboeken@hactar.science.uva.nl:/home/pboeken/debiased_regression/output/log/*' ~/Documents/PhD/debiased_regression/output/log
 ```

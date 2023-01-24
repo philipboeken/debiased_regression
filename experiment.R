@@ -86,12 +86,48 @@ get_top_order <- function(amat) {
   return(top_order)
 }
 
+simulate_discr <- function(all_data, var, amat, n, pos_mode, indep_mode) {
+  parents <- get_parents(var, amat)
+  
+  all_data$pi <- apply(sapply(parents, function(parent) {
+    sigmoid(scale(all_data[, parent]) * 10)
+  }), 1, prod)
+
+  # Scale selection probabilities between a lower bound and 1, to control positivity.
+  min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
+  all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
+
+  # Let selection probabilities depend on Y (where we can have no positivity in the Y-direction)
+  dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+  all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
+
+  all_data$S <- runif(n) < all_data$pi
+  
+  all_data
+}
+
+simulate_cont <- function(all_data, var, amat, n, pos_mode, indep_mode) {
+  parents <- get_parents(var, amat)
+  if (length(parents) == 0) {
+    mu <- numeric(n)
+    eps <- runif(n, -2, 2)
+    eps <- eps / (2 * sd(eps))
+  } else {
+    mu <- draw_gp(all_data[, parents], kernel_fn = matern_kernel, nu = 2.5)
+    eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
+    eps <- sd(mu) * eps / (2 * sd(eps))
+  }
+  all_data[, var] <- mu + eps
+
+  all_data
+}
+
 simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "indep") {
   stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
   stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
   set.seed(seed)
   top_order <- get_top_order(amat)
-  top_order <- top_order[top_order != "S"]
+  top_order <- c(top_order[top_order != "S"], "S")
 
   all_data <- data.frame(
     X = numeric(n),
@@ -102,33 +138,12 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
 
   while (sum(all_data$S) < 50) {
     for (var in top_order) {
-      parents <- get_parents(var, amat)
-      if (length(parents) == 0) {
-        mu <- numeric(n)
-        eps <- runif(n, -2, 2)
-        eps <- eps / (2 * sd(eps))
+      if (var == "S") {
+        all_data <- simulate_discr(all_data, var, amat, n, pos_mode, indep_mode)
       } else {
-        mu <- draw_gp(all_data[, parents], kernel_fn = matern_kernel, nu = 2.5)
-        eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
-        eps <- sd(mu) * eps / (2 * sd(eps))
+        all_data <- simulate_cont(all_data, var, amat, n, pos_mode, indep_mode)
       }
-      all_data[, var] <- mu + eps
     }
-
-    S_parents <- get_parents("S", amat)
-    all_data$pi <- apply(sapply(S_parents, function(parent) {
-      sigmoid(scale(all_data[, parent]) * 10)
-    }), 1, prod)
-
-    # Scale selection probabilities between a lower bound and 1, to control positivity.
-    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-    all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
-
-    # Let selection probabilities depend on Y (where we can have no positivity in the Y-direction)
-    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
-
-    all_data$S <- runif(n) < all_data$pi
 
     if (sum(all_data$S) < 50) {
       warning("Less than 50 observations selected, we're going to resample.")
