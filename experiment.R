@@ -5,14 +5,17 @@ library(mgcv)
 # v Add file for making figures for the main story:
 #     v 3d plot waarom imputatie zo goed lukt.
 # - Improve naive method using causal vs anticausal, or ssl kernel regression.
-# v Pick the best IPW clipping method and apply this to Doubly Robust. Still, what direct method do we use for DR?
+# v Pick the best IPW clipping method and apply this to Doubly Robust.
+#     Still, what direct method do we use for DR?
 #       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE,
 #         which is the only setting where IPW works better than naive.
-# - Test whether one method is better than the other: https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
+# - Test whether one method is better than the other:
+#       https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
 # - Lijst maken van conclusies die ik wil trekken
 #     - Identify for which graphs any method fails, or where naive has much bias.
 #     - Perhaps select only datasets where naive fails.
-# v Better tuning of IPW (out of the box package, or better clipping: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3069059/)
+# v Better tuning of IPW (out of the box package,
+#     or better clipping: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3069059/)
 # v Check if GP regression depends on size of weights
 #       It does... There's a threshold, and for
 #       every value above this threshold it responds the same, but different as
@@ -39,6 +42,9 @@ clip_lower_quantile <- function(probs, q) {
 }
 
 trans_linear <- function(probs, min_value, max_value = 1) {
+  if (max(probs) == min(probs)) {
+    return(probs)
+  }
   probs <- probs - min(probs)
   (probs / max(probs)) * (max_value - min_value) + min_value
 }
@@ -231,13 +237,34 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   selected_data <- all_data[all_data$S, ]
 
   # IPW with estimated weights
-  ipw_model_est <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
-  ipw_model_est_clip_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_05)
-  ipw_model_est_clip_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_1)
-  ipw_model_est_clip_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clip_25)
-  ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_05)
-  ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_1)
-  ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_trans_25)
+  ipw_model_est <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est
+  )
+  ipw_model_est_clip_05 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_clip_05
+  )
+  ipw_model_est_clip_1 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_clip_1
+  )
+  ipw_model_est_clip_25 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_clip_25
+  )
+  ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_trans_05
+  )
+  ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_trans_1
+  )
+  ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_trans_25
+  )
   all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X = all_data$X))
   all_data$yhat_ipw_est_clip_05 <- predict(ipw_model_est_clip_05, data.frame(X = all_data$X))
   all_data$yhat_ipw_est_clip_1 <- predict(ipw_model_est_clip_1, data.frame(X = all_data$X))
@@ -247,13 +274,34 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   all_data$yhat_ipw_est_trans_25 <- predict(ipw_model_est_trans_25, data.frame(X = all_data$X))
 
   # IPW with true weights
-  ipw_model_true <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
-  ipw_model_true_clip_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_05)
-  ipw_model_true_clip_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_1)
-  ipw_model_true_clip_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clip_25)
-  ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_05)
-  ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_1)
-  ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_trans_25)
+  ipw_model_true <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true
+  )
+  ipw_model_true_clip_05 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_clip_05
+  )
+  ipw_model_true_clip_1 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_clip_1
+  )
+  ipw_model_true_clip_25 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_clip_25
+  )
+  ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_trans_05
+  )
+  ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_trans_1
+  )
+  ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_trans_25
+  )
   all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X = all_data$X))
   all_data$yhat_ipw_true_clip_05 <- predict(ipw_model_true_clip_05, data.frame(X = all_data$X))
   all_data$yhat_ipw_true_clip_1 <- predict(ipw_model_true_clip_1, data.frame(X = all_data$X))
@@ -274,24 +322,36 @@ cbind_doubly_robust <- function(all_data, direct_method = "yhat_recursive_mix") 
   stopifnot(all(c(direct_method, c(
     "weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped"
   )) %in% colnames(all_data)))
-  
+
   all_data$yhat_dr_direct <- all_data[, direct_method]
   all_data$dr_resid <- all_data$Y - all_data$yhat_dr_direct
   selected_data <- all_data[all_data$S, ]
 
-  resid_ipw_model_est <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est)
+  resid_ipw_model_est <- gam(dr_resid ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est
+  )
   all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X = all_data$X))
   all_data$yhat_dr_est <- all_data$yhat_dr_direct + all_data$residhat_ipw_est
 
-  resid_ipw_model_est_clipped <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_est_clipped)
+  resid_ipw_model_est_clipped <- gam(dr_resid ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_est_clipped
+  )
   all_data$residhat_ipw_est_clipped <- predict(resid_ipw_model_est_clipped, data.frame(X = all_data$X))
   all_data$yhat_dr_est_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_est_clipped
 
-  resid_ipw_model_true <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true)
+  resid_ipw_model_true <- gam(dr_resid ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true
+  )
   all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X = all_data$X))
   all_data$yhat_dr_true <- all_data$yhat_dr_direct + all_data$residhat_ipw_true
 
-  resid_ipw_model_true_clipped <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data$weights_true_clipped)
+  resid_ipw_model_true_clipped <- gam(dr_resid ~ s(X, bs = "tp"),
+    data = selected_data,
+    weights = selected_data$weights_true_clipped
+  )
   all_data$residhat_ipw_true_clipped <- predict(resid_ipw_model_true_clipped, data.frame(X = all_data$X))
   all_data$yhat_dr_true_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_true_clipped
 
@@ -363,7 +423,8 @@ legend_labels <- c(
   "yhat_dr_est_clipped" = "Doubly Robust (est., clipped)"
 )
 
-plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y), weights_obs = .75, legend_flag = FALSE) {
+plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y),
+                         weights_obs = .75, legend_flag = FALSE) {
   selected_data <- all_data[all_data$S, ]
   rejected_data <- all_data[!all_data$S, ]
 
