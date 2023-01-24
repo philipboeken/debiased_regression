@@ -59,24 +59,26 @@ write_table <- function(table, file, append = FALSE) {
     cat(out, "\n", file = file, sep = "\n", append = append)
 }
 
-write_mse_results_for_graph_range <- function(
-    mse_results_per_graph, graph_range,
+write_mse_results <- function(
+    mse_results_per_graph,
     n_iter, n, pos_mode, indep_mode, graph_known) {
     outfile <- sprintf(
-        "output/mse_results/mse_results_combined_%s-%s_%s_%s_%s_%s_%s.txt",
-        min(graph_range), max(graph_range), n_iter, n, pos_mode, indep_mode, graph_known
+        "output/mse_results/mse_results_combined_%s_%s_%s_%s_%s.txt",
+        n_iter, n, pos_mode, indep_mode, graph_known
     )
     cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
     cat("n:", n, "\n\n", file = outfile, append = TRUE)
 
-    cat("All combined:", "\n", file = outfile, append = TRUE)
+    for (graph_range in list(1:27, 28:51, 1:51)) {
+        cat("Combined:", range(graph_range), "\n", file = outfile, append = TRUE)
 
-    all_mse_results <- unlist(mse_results_per_graph[graph_range], recursive = FALSE)
-    all_formatted <- get_mse_formatted(all_mse_results)
+        all_mse_results <- unlist(mse_results_per_graph[graph_range], recursive = FALSE)
+        all_formatted <- get_mse_formatted(all_mse_results)
 
-    write_table(all_formatted, file = outfile, append = TRUE)
+         write_table(all_formatted, file = outfile, append = TRUE)
+    }
 
-    for (i in graph_range) {
+    for (i in 1:51) {
         cat("Graph", i, "\n", file = outfile, append = TRUE)
         formatted <- get_mse_formatted(mse_results_per_graph[[i]])
         write_table(formatted, file = outfile, append = TRUE)
@@ -90,7 +92,7 @@ pos_mode <- as.character(args[3])
 indep_mode <- as.character(args[4])
 graph_known <- as.integer(args[5])
 graph_known <- as.logical(if (is.na(graph_known)) 0 else graph_known)
-mse_results_per_graph <- get_mse_results_per_graph()
+mse_results_per_graph <- get_mse_results_per_graph(n_iter, n, pos_mode, indep_mode, graph_known)
 
 save(mse_results_per_graph,
     file = sprintf(
@@ -99,6 +101,4 @@ save(mse_results_per_graph,
     )
 )
 
-write_mse_results_for_graph_range(mse_results_per_graph, 1:51, n_iter, n, pos_mode, indep_mode, graph_known)
-write_mse_results_for_graph_range(mse_results_per_graph, 1:27, n_iter, n, pos_mode, indep_mode, graph_known)
-write_mse_results_for_graph_range(mse_results_per_graph, 28:51, n_iter, n, pos_mode, indep_mode, graph_known)
+write_mse_results(mse_results_per_graph, n_iter, n, pos_mode, indep_mode, graph_known)
