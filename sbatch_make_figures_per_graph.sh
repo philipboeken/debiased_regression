@@ -10,7 +10,7 @@
 #
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT_80
 #
-#SBATCH --array=1-27
+#SBATCH --array=1-51
 
 # Run as: sbatch sbatch_make_figures_per_graph.sh <n_inter> <n_obs> <pos_mode> <indep_mode>
 
