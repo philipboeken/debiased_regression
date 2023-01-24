@@ -353,7 +353,7 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
   rejected_data <- all_data[!all_data$S, ]
 
   ord <- order(all_data$X)
-  par(mar = c(1, 1, 1, 1))
+  par(mar = c(0, 0, 0, 0))
   plot(rejected_data$X, rejected_data$Y,
     pch = 16, cex = .75, col = "grey",
     xlim = xlim, ylim = ylim,

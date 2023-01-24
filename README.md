@@ -37,7 +37,9 @@ sbatch --array=1-500 sbatch_run_all_iters.sh 1000 pos wdep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos wdep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos indep
 sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos dep
+```
 
+```
 # Locally combine MSE results for results with n=1000: -->
 Rscript format_mse_results.R 1000 npos indep
 Rscript format_mse_results.R 1000 pos indep

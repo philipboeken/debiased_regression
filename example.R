@@ -41,11 +41,13 @@ all_data <- cbind_recursive(all_data, impute_linear = FALSE)
 if (save_figs) pdf("output/figures/example/2a_imputed.pdf", width = 6, height = 4)
 offsets_y <- c(25, 45, 62)
 loc_x <- min(all_data$X) - 3
-
-plot_results(all_data[, c("X", "Y", "S", "y_imputed")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y)))
+rejected_data <- all_data[!all_data$S, ]
+# plot_results(all_data[, c("X", "Y", "S", "y_imputed")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y)))
+plot_results(all_data[, c("X", "Y", "S")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y)))
 
 text(loc_x, mean(all_data$eps_Y) + offsets_y[3] - 1, latex2exp::TeX("$\\epsilon_Y$"), cex = 1.8, pos = 3, col = "black")
-points(all_data$X, all_data$eps_Y + offsets_y[3], cex = .75, pch = 16, col = "gray")
+points(rejected_data$X, rejected_data$eps_Y + offsets_y[3], cex = .75, pch = 16, col = "gray")
+points(selected_data$X, selected_data$eps_Y + offsets_y[3], cex = .75, pch = 16, col = "black")
 text(mean(all_data$X), 48, latex2exp::TeX("$+$"), cex = 2, pos = 3, col = "black")
 
 text(loc_x, mean(all_data$X / 2) + offsets_y[2] - 5, latex2exp::TeX("$\\frac{1}{2}X$"), cex = 1.5, pos = 3, col = "black")
@@ -146,4 +148,4 @@ if (save_figs) dev.off()
 
 ######################## Evaluation ########################
 mse_result <- get_mse_result(all_data)
-# print(mse_result)
+print(mse_result)
