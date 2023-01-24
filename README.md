@@ -41,16 +41,16 @@ sbatch --array=1-500 sbatch_run_all_iters.sh 1000 wpos dep
 
 ```
 # Locally combine MSE results for results with n=1000: -->
-Rscript format_mse_results.R 1000 npos indep
-Rscript format_mse_results.R 1000 pos indep
-Rscript format_mse_results.R 1000 npos dep
-Rscript format_mse_results.R 1000 pos dep
+Rscript format_mse_results.R 500 1000 npos indep
+Rscript format_mse_results.R 500 1000 pos indep
+Rscript format_mse_results.R 500 1000 npos dep
+Rscript format_mse_results.R 500 1000 pos dep
 
-Rscript format_mse_results.R 1000 npos wdep
-Rscript format_mse_results.R 1000 pos wdep
-Rscript format_mse_results.R 1000 wpos wdep
-Rscript format_mse_results.R 1000 wpos indep
-Rscript format_mse_results.R 1000 wpos dep
+Rscript format_mse_results.R 500 1000 npos wdep
+Rscript format_mse_results.R 500 1000 pos wdep
+Rscript format_mse_results.R 500 1000 wpos wdep
+Rscript format_mse_results.R 500 1000 wpos indep
+Rscript format_mse_results.R 500 1000 wpos dep
 ```
 
 Copying files from hactar to local:

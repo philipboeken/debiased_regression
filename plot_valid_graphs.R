@@ -37,9 +37,10 @@ if (file.exists("data/valid_graphs.RData")) {
     if (!isValidGraph(amat, type = "dag")) {
       return()
     }
-    if (sum(amat[, "S"]) > 0) {
-      return()
-    }
+    # Uncomment this to only find graphs where S is a sink-node
+    # if (sum(amat[, "S"]) > 0) {
+    #   return()
+    # }
     john.pairs <- RBGL::johnson.all.pairs.sp(g)
     if (!dsep("X", "Y", g = g, john.pairs = john.pairs) &&
       !dsep("Y", "S", g = g, john.pairs = john.pairs) &&
@@ -54,13 +55,17 @@ if (file.exists("data/valid_graphs.RData")) {
 
 pdf("./output/figures/all_dags.pdf", width = 7, height = 4)
 par(mfrow = c(4, 7))
-for (i in 1:nrow(valid_graphs)) {
-  amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
-  colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
-  qgraph(t(amat),
-    vsize = 30, label.cex = 1.4, esize = 4, asize = 14,
-    layout = matrix(c(0, 1, 1, 0, 0, 0, -1, -1), nrow = 4),
-    mar = c(8, 8, 8, 8), edge.color = "black"
-  )
+# In graphs 1:27 S is a sink node, in graphs 28:51 S is not a sink node
+for (ran in list(1:27, 28:51)) {
+  for (i in ran) {
+    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+    qgraph(t(amat),
+      vsize = 30, label.cex = 1.4, esize = 4, asize = 14,
+      layout = matrix(c(0, 1, 1, 0, 0, 0, -1, -1), nrow = 4),
+      mar = c(8, 8, 8, 8), edge.color = "black"
+    )
+  }
+  par(mfrow = c(4, 7))
 }
 dev.off()

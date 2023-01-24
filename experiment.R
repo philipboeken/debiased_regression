@@ -92,23 +92,33 @@ get_top_order <- function(amat) {
   return(top_order)
 }
 
+smaller_top_order <- function(v, w, amat) {
+  top_order <- get_top_order(amat)
+  which(top_order == v) < which(top_order == w)
+}
+
 simulate_discr <- function(all_data, var, amat, n, pos_mode, indep_mode) {
   parents <- get_parents(var, amat)
-  
-  all_data$pi <- apply(sapply(parents, function(parent) {
-    sigmoid(scale(all_data[, parent]) * 10)
-  }), 1, prod)
 
-  # Scale selection probabilities between a lower bound and 1, to control positivity.
-  min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-  all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
+  if (length(parents) == 0) {
+    all_data$pi <- 1 / 3
+  } else {
+    all_data$pi <- apply(sapply(parents, function(parent) {
+      sigmoid(scale(all_data[, parent]) * 10)
+    }), 1, prod)
+    # Scale selection probabilities between a lower bound and 1, to control positivity.
+    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
+    all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
+  }
 
-  # Let selection probabilities depend on Y (where we can have no positivity in the Y-direction)
-  dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-  all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
+  if (var == "S" && smaller_top_order("Y", "S", amat)) {
+    # Let selection probabilities depend on Y (allowing for no positivity in the Y-direction)
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+    all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
+  }
 
   all_data$S <- runif(n) < all_data$pi
-  
+
   all_data
 }
 
@@ -119,11 +129,19 @@ simulate_cont <- function(all_data, var, amat, n, pos_mode, indep_mode) {
     eps <- runif(n, -2, 2)
     eps <- eps / (2 * sd(eps))
   } else {
-    mu <- draw_gp(all_data[, parents], kernel_fn = matern_kernel, nu = 2.5)
+    mu <- draw_gp(all_data[, setdiff(parents, "S")], kernel_fn = matern_kernel, nu = 2.5)
     eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
     eps <- sd(mu) * eps / (2 * sd(eps))
   }
   all_data[, var] <- mu + eps
+
+  if ("S" %in% parents) {
+    shift <- c("pos" = 1, "wpos" = 2, "npos" = 3)[pos_mode]
+    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * shift
+  } else if (var == "Y" && smaller_top_order("S", "Y", amat)) {
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * dep
+  }
 
   all_data
 }
@@ -133,7 +151,6 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
   stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
   set.seed(seed)
   top_order <- get_top_order(amat)
-  top_order <- c(top_order[top_order != "S"], "S")
 
   all_data <- data.frame(
     X = numeric(n),
@@ -482,7 +499,7 @@ experiment <- function(
 }
 
 # print(experiment(
-#   graph_nr = 1, iter = 1, n = 1000,
-#   pos_mode = "pos", indep_mode = "indep",
+#   graph_nr = 29, iter = 1, n = 400,
+#   pos_mode = "npos", indep_mode = "indep",
 #   graph_known = FALSE, plot_flag = TRUE
 # ))
