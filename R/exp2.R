@@ -65,7 +65,13 @@ experiment2 <- function(m = 100, seed = 1) {
 m <- get_arg_numeric(1, 100)
 seed <- get_arg_numeric(2, 1)
 
+start <- Sys.time()
+cat("\nStarting exp2.R", c(m, seed), "at", format(start), "\n")
+
 all_mse_results <- experiment2(m, seed)
 
 formatted <- get_mse_formatted(all_mse_results)
 write_table(formatted, file = sprintf("output/tables/exp2/results_formatted_%s.txt", m), append = FALSE)
+
+end <- Sys.time()
+cat("\nFinished exp2.R", c(m, seed), "at", format(end), "in", format(end - start), "\n")

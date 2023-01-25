@@ -7,9 +7,7 @@ pos_mode <- get_arg_character(4, "pos")
 indep_mode <- get_arg_character(5, "indep")
 
 start <- Sys.time()
-
 cat("\nStarting exp1d_plot_iterations.R", c(graph_nr, n_iter, n, pos_mode, indep_mode), "at", format(start), "\n")
-
 
 fig_outfolder <- sprintf("output/figures/exp1/graphs_plots", n_iter, n, pos_mode, indep_mode)
 
@@ -20,7 +18,6 @@ for (iter in 1:n_iter) {
 dev.off()
 
 end <- Sys.time()
-
 cat(
     "\nFinished exp1d_plot_iterations.R", c(graph_nr, n_iter, n, pos_mode, indep_mode), "at", format(end),
     "in", format(end - start), "\n"

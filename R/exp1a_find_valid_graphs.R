@@ -59,6 +59,9 @@ plot_graphs <- function(graphs) {
   }
 }
 
+start <- Sys.time()
+cat("\nStarting exp1a_find_valid_graphs.R", "at", format(start), "\n")
+
 if (!file.exists("data/exp1/valid_graphs.RData")) {
   valid_graphs <- find_valid_graphs()
   save(valid_graphs, file = "data/exp1/valid_graphs.RData")
@@ -78,3 +81,6 @@ if (!file.exists(filename)) {
   }
   dev.off()
 }
+
+end <- Sys.time()
+cat("\nFinished exp1a_find_valid_graphs.R", "at", format(end), "in", format(end - start), "\n")

@@ -153,7 +153,11 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 1)
 save_figs <- get_arg_logical(3, TRUE)
-cat(n, seed, save_figs)
+
+start <- Sys.time()
+cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
 
 example1(n, seed, save_figs)
 
+end <- Sys.time()
+cat("\nFinished example1.R", c(n, seed, save_figs), "at", format(end), "in", format(end - start), "\n")

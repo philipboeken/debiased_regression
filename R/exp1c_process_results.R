@@ -51,6 +51,9 @@ pos_mode <- get_arg_character(3, "pos")
 indep_mode <- get_arg_character(4, "indep")
 graph_known <- get_arg_logical(5, FALSE)
 
+start <- Sys.time()
+cat("\nStarting exp1c_process_results.R", c(n_iter, n, pos_mode, indep_mode, graph_known), "at", format(start), "\n")
+
 mse_results_per_graph <- get_mse_results_per_graph(n_iter, n, pos_mode, indep_mode, graph_known)
 
 save(mse_results_per_graph,
@@ -61,3 +64,9 @@ save(mse_results_per_graph,
 )
 
 write_mse_results(mse_results_per_graph, n_iter, n, pos_mode, indep_mode, graph_known)
+
+end <- Sys.time()
+cat(
+    "\nFinished exp1c_process_results.R", c(n_iter, n, pos_mode, indep_mode, graph_known), "at", format(end),
+    "in", format(end - start), "\n"
+)

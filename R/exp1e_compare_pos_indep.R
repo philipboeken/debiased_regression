@@ -5,6 +5,9 @@ iter <- get_arg_numeric(2)
 n <- get_arg_numeric(3)
 graph_known <- get_arg_logical(4, FALSE)
 
+start <- Sys.time()
+cat("\nStarting exp1e_compare_pos_indep.R", c(graph_nr, iter, n, graph_known), "at", format(start), "\n")
+
 pdf(
   sprintf(
     "output/figures/exp1/compare_pos_indep/compare_%s_%s_%s_%s.pdf",
@@ -23,3 +26,9 @@ for (pos_mode in c("pos", "wpos", "npos")) {
   }
 }
 dev.off()
+
+end <- Sys.time()
+cat(
+    "\nFinished exp1e_compare_pos_indep.R", c(graph_nr, iter, n, graph_known), "at", format(end),
+    "in", format(end - start), "\n"
+)
