@@ -24,6 +24,7 @@ library(mgcv)
 # v Regress only on dependent vars for P(S=1|X, Z) and E[Y| X, Z, S=1]
 # v Find other non-parametric weighted regression methods
 # v Can we assess performance on near-independence, so where Y -> S, but very weakly?
+# v We don't simulate e.g. Z -> S by passing Z through a GP and then a sigmoid, as we can then not properly tune positivity
 
 sigmoid <- function(x, ymin = 0, ymax = 1) {
   1 / (1 + exp(x)) * (ymax - ymin) + ymin
@@ -453,7 +454,7 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     xaxt = "n", yaxt = "n",
     ann = FALSE, frame.plot = FALSE
   )
-  points(selected_data$X, selected_data$Y, pch = 16, cex = weights_obs)
+  points(selected_data$X, selected_data$Y, pch = 16, cex = trans_linear(weights_obs, .75, max(weights_obs)))
   if ("y_imputed" %in% colnames(rejected_data)) {
     points(rejected_data$X, rejected_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
   }
