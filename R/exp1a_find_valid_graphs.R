@@ -1,6 +1,3 @@
-library(pbapply)
-library(qgraph)
-
 # NB directly copied from pcalg R/isValidGraph.R
 noCycles <- function(amat) {
   ok <- TRUE
@@ -22,6 +19,7 @@ noCycles <- function(amat) {
 }
 
 find_valid_graphs <- function() {
+  library(pbapply)
   library(pcalg)
   valid_graphs <- data.frame()
 
@@ -49,6 +47,7 @@ find_valid_graphs <- function() {
 }
 
 plot_graphs <- function(graphs) {
+  library(qgraph)
   for (i in 1:nrow(graphs)) {
     amat <- matrix(as.numeric(graphs[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
@@ -68,11 +67,14 @@ if (!file.exists("data/valid_graphs.RData")) {
 }
 
 
-pdf("output/figures/exp1/all_valid_graphs.pdf", width = 7, height = 4)
-par(mfrow = c(4, 7))
-# In graphs 1:27 S is a sink node, in graphs 28:51 S is not a sink node
-for (graphs_range in list(1:27, 28:51)) {
-  plot_graphs(valid_graphs[graphs_range, ])
+filename <- "output/figures/exp1/all_valid_graphs.pdf"
+if (!file.exists(filename)) {
+  pdf(filename, width = 7, height = 4)
   par(mfrow = c(4, 7))
+  # In graphs 1:27 S is a sink node, in graphs 28:51 S is not a sink node
+  for (graphs_range in list(1:27, 28:51)) {
+    plot_graphs(valid_graphs[graphs_range, ])
+    par(mfrow = c(4, 7))
+  }
+  dev.off()
 }
-dev.off()
