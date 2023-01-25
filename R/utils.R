@@ -69,7 +69,7 @@ trans_linear <- function(probs, min_value, max_value = 1) {
 }
 
 get_graph <- function(graph_nr) {
-  load("data/valid_graphs.RData")
+  load("data/exp1/valid_graphs.RData")
   amat <- matrix(as.numeric(valid_graphs[graph_nr, ]), nrow = 4)
   colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
   amat

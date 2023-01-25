@@ -59,11 +59,11 @@ plot_graphs <- function(graphs) {
   }
 }
 
-if (!file.exists("data/valid_graphs.RData")) {
+if (!file.exists("data/exp1/valid_graphs.RData")) {
   valid_graphs <- find_valid_graphs()
-  save(valid_graphs, file = "data/valid_graphs.RData")
+  save(valid_graphs, file = "data/exp1/valid_graphs.RData")
 } else {
-  load("data/valid_graphs.RData")
+  load("data/exp1/valid_graphs.RData")
 }
 
 
