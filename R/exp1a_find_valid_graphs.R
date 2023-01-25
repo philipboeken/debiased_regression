@@ -42,7 +42,7 @@ find_valid_graphs <- function() {
       valid_graphs <<- rbind(valid_graphs, data.frame(opts[i, ]))
     }
   })
-  
+
   valid_graphs
 }
 
