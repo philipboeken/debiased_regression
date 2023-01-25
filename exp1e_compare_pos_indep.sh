@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 #SBATCH --job-name=exp1e_compare_pos_indep
+#SBATCH --open-mode=append
 #SBATCH --output=/home/pboeken/debiased_regression/output/log/log_exp1e_compare_pos_indep.stdout
 #SBATCH --error=/home/pboeken/debiased_regression/output/log/error_exp1e_compare_pos_indep.stderr
 #SBATCH --workdir=/home/pboeken/debiased_regression
