@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 #SBATCH --job-name=exp1d_plot_iterations_sbatch
-#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_figures_graph_%a.stdout
-#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_figures_graph_%a.stderr
+#SBATCH --output=/home/pboeken/debiased_regression/output/log/log_exp1d_plot_iterations_sbatch.stdout
+#SBATCH --error=/home/pboeken/debiased_regression/output/log/error_exp1d_plot_iterations_sbatch.stderr
 #SBATCH --workdir=/home/pboeken/debiased_regression
 #
 #SBATCH --time=10000:00
