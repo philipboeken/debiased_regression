@@ -19,7 +19,7 @@ mse_outfolder <- sprintf("./output/mse_results/mse_results_%s_%s_%s_%s", n, pos_
 dir.create(mse_outfolder, showWarnings = FALSE)
 file.copy("output/figures/.gitignore", mse_outfolder)
 
-for (graph_nr in 1:27) {
+for (graph_nr in 1:51) {
     mse_result <- experiment(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
     outfile <- sprintf("%s/mse_result_%s_%s_%s", mse_outfolder, graph_nr, iter, n)
     save(mse_result, file = sprintf("%s.RData", outfile))
