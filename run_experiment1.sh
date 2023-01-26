@@ -15,10 +15,10 @@ JOBID3=$(sbatch --parsable --dependency=afterok:$JOBID0 --array=1-$NITER exp1b_s
 JOBID4=$(sbatch --parsable --dependency=afterok:$JOBID0 --array=1-$NITER exp1b_simulate_sbatch.sh $NOBS pos dep)
 
 # 1c: Combine MSE results for results with n=$NOBS: -->
-sbatch --dependency=afterok:$JOBID0,afterok:$JOBID1 exp1c_process_results.sh $NITER $NOBS npos indep
-sbatch --dependency=afterok:$JOBID0,afterok:$JOBID2 exp1c_process_results.sh $NITER $NOBS pos indep
-sbatch --dependency=afterok:$JOBID0,afterok:$JOBID3 exp1c_process_results.sh $NITER $NOBS npos dep
-sbatch --dependency=afterok:$JOBID0,afterok:$JOBID4 exp1c_process_results.sh $NITER $NOBS pos dep
+sbatch --dependency=afterok:$JOBID0,afterany:$JOBID1 exp1c_process_results.sh $NITER $NOBS npos indep
+sbatch --dependency=afterok:$JOBID0,afterany:$JOBID2 exp1c_process_results.sh $NITER $NOBS pos indep
+sbatch --dependency=afterok:$JOBID0,afterany:$JOBID3 exp1c_process_results.sh $NITER $NOBS npos dep
+sbatch --dependency=afterok:$JOBID0,afterany:$JOBID4 exp1c_process_results.sh $NITER $NOBS pos dep
 
 # 1d: Make for each graph 25 plots with n=$NOBS:
 sbatch --dependency=afterok:$JOBID0 exp1d_plot_iterations_sbatch.sh 25 $NOBS pos indep
