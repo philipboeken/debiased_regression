@@ -13,6 +13,6 @@
 #
 #SBATCH --array=1-51
 
-# Run as: sbatch exp1d_plot_iterations_sbatch.sh <n_inter> <n_obs> <pos_mode> <indep_mode>
+# Run as: sbatch exp1d_plot_iterations_sbatch.sh <n_inter> <n_obs> <pos_mode> <indep_mode> <graph_known>
 
-Rscript R/exp1d_plot_iterations.R $SLURM_ARRAY_TASK_ID $1 $2 $3 $4
+Rscript R/exp1d_plot_iterations.R $SLURM_ARRAY_TASK_ID $1 $2 $3 $4 $5

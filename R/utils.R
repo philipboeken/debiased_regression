@@ -27,7 +27,7 @@ library(mgcv)
 
 get_arg <- function(idx, default_value = NA) {
   args <- commandArgs(trailingOnly = TRUE)
-  arg <- as.numeric(args[idx])
+  arg <- args[idx]
   arg <- if(is.na(arg)) default_value else arg
   arg
 }
@@ -493,8 +493,8 @@ get_mse_stats <- function(list_of_mse_results) {
 
 get_mse_formatted <- function(list_of_mse_results) {
   mse_stats <- get_mse_stats(list_of_mse_results)
-  idx_orer <- order(mse_stats$means$y)
-  formatted_results <- list_of_mse_results[[1]][idx_orer, ]
+  idx_order <- order(mse_stats$means$y)
+  formatted_results <- list_of_mse_results[[1]][idx_order, ]
   formatted_results[, ] <- NA
   for (i in rownames(formatted_results)) {
     for (j in colnames(formatted_results)) {

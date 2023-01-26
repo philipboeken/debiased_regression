@@ -3,7 +3,7 @@ source("R/utils.R")
 get_mse_results_per_graph <- function(n_iter, n, pos_mode, indep_mode, graph_known) {
     load("data/exp1/valid_graphs.RData")
     mse_data_folder <- sprintf(
-        "data/exp1/mse_results_%s_%s_%s_%s_%s",
+        "data/exp1/results_%s_%s_%s_%s_%s",
         n_iter, n, pos_mode, indep_mode, graph_known
     )
     lapply(1:nrow(valid_graphs), function(graph_nr) {

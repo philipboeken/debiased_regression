@@ -12,7 +12,7 @@ graph_known <- get_arg_logical(6, FALSE)
 start <- Sys.time()
 cat("\nStarting expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known), "at", format(start), "\n")
 
-mse_outfolder <- sprintf("./data/exp1/results_%s_%s_%s_%s_%s", n_iter, n, pos_mode, indep_mode, graph_known)
+mse_outfolder <- sprintf("data/exp1/results_%s_%s_%s_%s_%s", n_iter, n, pos_mode, indep_mode, graph_known)
 dir.create(mse_outfolder, showWarnings = FALSE)
 
 for (graph_nr in 1:51) {
