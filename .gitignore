@@ -2,6 +2,7 @@
 temp*
 output/mse_old
 archive
+transfer_output.sh
 
 #######################
 ### R related files ###
