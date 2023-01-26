@@ -62,7 +62,7 @@ experiment2 <- function(m = 100, seed = 1) {
   all_mse_results
 }
 
-m <- get_arg_numeric(1, 100)
+m <- get_arg_numeric(1, 1000)
 seed <- get_arg_numeric(2, 1)
 
 start <- Sys.time()
