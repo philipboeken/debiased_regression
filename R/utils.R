@@ -1,34 +1,9 @@
 library(mgcv)
 
-# TODO:
-# v Add file for making figures for the main story:
-#     v 3d plot waarom imputatie zo goed lukt.
-# - Improve naive method using causal vs anticausal, or ssl kernel regression.
-# v Pick the best IPW clipping method and apply this to Doubly Robust.
-#     Still, what direct method do we use for DR?
-#       - Use trans_05 as this works best in mse_results_combined_500_1000_pos_indep_FALSE,
-#         which is the only setting where IPW works better than naive.
-# - Test whether one method is better than the other:
-#       https://dl.acm.org/doi/pdf/10.1145/1143844.1143862 section 5
-# - Lijst maken van conclusies die ik wil trekken
-#     - Identify for which graphs any method fails, or where naive has much bias.
-#     - Perhaps select only datasets where naive fails.
-# v Better tuning of IPW (out of the box package,
-#     or better clipping: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3069059/)
-# v Check if GP regression depends on size of weights
-#       It does... There's a threshold, and for
-#       every value above this threshold it responds the same, but different as
-#       to any value below this threshold.
-#     So, mutliply with P(S=1) for completeness sake.
-# v Regress only on dependent vars for P(S=1|X, Z) and E[Y| X, Z, S=1]
-# v Find other non-parametric weighted regression methods
-# v Can we assess performance on near-independence, so where Y -> S, but very weakly?
-# v We don't simulate e.g. Z -> S by passing Z through a GP and then a sigmoid, as we can then not properly tune positivity
-
 get_arg <- function(idx, default_value = NA) {
   args <- commandArgs(trailingOnly = TRUE)
   arg <- args[idx]
-  arg <- if(is.na(arg)) default_value else arg
+  arg <- if (is.na(arg)) default_value else arg
   arg
 }
 
@@ -160,85 +135,6 @@ draw_gp <- function(x, kernel_fn, ...) {
   x <- as.matrix(x)
   cov_matrix <- kernel_matrix(x, kernel_fn, ...)
   MASS::mvrnorm(1, mu = rep(0, times = nrow(x)), Sigma = cov_matrix)
-}
-
-simulate_discr <- function(all_data, var, amat, n, pos_mode, indep_mode) {
-  parents <- get_parents(var, amat)
-
-  if (length(parents) == 0) {
-    all_data$pi <- 1 / 3
-  } else {
-    all_data$pi <- apply(sapply(parents, function(parent) {
-      sigmoid(scale(all_data[, parent]) * 10)
-    }), 1, prod)
-    # Scale selection probabilities between a lower bound and 1, to control positivity.
-    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-    all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
-  }
-
-  if (var == "S" && smaller_top_order("Y", "S", amat)) {
-    # Let selection probabilities depend on Y (allowing for no positivity in the Y-direction)
-    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
-  }
-
-  all_data$S <- runif(n) < all_data$pi
-
-  all_data
-}
-
-simulate_cont <- function(all_data, var, amat, n, pos_mode, indep_mode) {
-  parents <- get_parents(var, amat)
-  if (length(parents) == 0) {
-    mu <- numeric(n)
-    eps <- runif(n, -2, 2)
-    eps <- eps / (2 * sd(eps))
-  } else {
-    mu <- draw_gp(all_data[, setdiff(parents, "S")], kernel_fn = matern_kernel, nu = 2.5)
-    eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
-    eps <- sd(mu) * eps / (2 * sd(eps))
-  }
-  all_data[, var] <- mu + eps
-
-  if ("S" %in% parents) {
-    shift <- c("pos" = 1, "wpos" = 2, "npos" = 3)[pos_mode]
-    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * shift
-  } else if (var == "Y" && smaller_top_order("S", "Y", amat)) {
-    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * dep
-  }
-
-  all_data
-}
-
-simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "indep") {
-  stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
-  stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
-  set.seed(seed)
-  top_order <- get_top_order(amat)
-
-  all_data <- data.frame(
-    X = numeric(n),
-    Y = numeric(n),
-    Z = numeric(n),
-    S = numeric(n)
-  )
-
-  while (sum(all_data$S) < 50) {
-    for (var in top_order) {
-      if (var == "S") {
-        all_data <- simulate_discr(all_data, var, amat, n, pos_mode, indep_mode)
-      } else {
-        all_data <- simulate_cont(all_data, var, amat, n, pos_mode, indep_mode)
-      }
-    }
-
-    if (sum(all_data$S) < 50) {
-      warning("Less than 50 observations selected, we're going to resample.")
-    }
-  }
-
-  return(all_data)
 }
 
 cbind_true <- function(all_data) {
@@ -579,30 +475,3 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     )
   }
 }
-
-experiment <- function(
-    graph_nr, iter, n = 900,
-    pos_mode = "pos", indep_mode = "indep",
-    graph_known = FALSE, plot_flag = FALSE) {
-  seed <- 100000 * graph_nr + iter
-
-  amat <- get_graph(graph_nr)
-
-  all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
-
-  all_data <- cbind_predictions(all_data, graph_known, amat)
-
-  if (plot_flag) {
-    plot_results(all_data)
-  }
-
-  mse_result <- get_mse_result(all_data)
-
-  return(mse_result)
-}
-
-# print(experiment(
-#   graph_nr = 29, iter = 1, n = 400,
-#   pos_mode = "npos", indep_mode = "indep",
-#   graph_known = FALSE, plot_flag = TRUE
-# ))
