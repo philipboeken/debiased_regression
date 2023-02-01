@@ -411,9 +411,14 @@ write_table <- function(table, file, append = FALSE) {
   cat(out, "\n", file = file, sep = "\n", append = append)
 }
 
+table_to_tex <- function(table) {
+  apply(table, 1, function(row) paste(row, collapse=" & "))
+}
+
 palette <- c(
   "yhat_true" = "#009E73",
   "yhat_naive" = "#000000",
+  "yhat_missp" = "#000000",
   "yhat_recursive_mix" = "#D55E00",
   "yhat_ipw_true" = "#0072B2",
   # "yhat_ipw_true_clipped" = "#0072B2",
@@ -428,6 +433,7 @@ palette <- c(
 legend_labels <- c(
   "yhat_true" = "True",
   "yhat_naive" = "Naive",
+  "yhat_missp" = "Misspecified",
   "yhat_recursive_mix" = "Recursive",
   "yhat_ipw_true" = "IPW (true)",
   "yhat_ipw_true_clipped" = "IPW (true, clipped)",
