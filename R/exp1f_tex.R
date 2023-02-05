@@ -1,6 +1,6 @@
 source("R/utils.R")
 
-rows <- c("yhat_naive", "yhat_recursive", "yhat_ipw_true_clipped", "yhat_ipw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped")
+rows <- c("yhat_naive", "yhat_repeated", "yhat_ipw_true_clipped", "yhat_ipw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped")
 columns <- c("yhat_true", "y", "yhat_imputed", "y_weighted_true", "y_weighted_est")
 labels <- c("Naive", "RR", "IPW-t", "IPW-e", "DR-t", "DR-e")
 

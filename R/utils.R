@@ -155,11 +155,11 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
+cbind_repeated <- function(all_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
   selected_data <- all_data[all_data$S, ]
 
-  # Direct recursive (imputed) with gam
+  # Direct repeated (imputed) with gam
   if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
     if (impute_linear) {
       imputation_model <- lm(Y ~ Z, data = selected_data)
@@ -177,11 +177,11 @@ cbind_recursive <- function(all_data, graph_known = FALSE, amat = NULL, impute_l
   all_data$y_mix <- all_data$y_imputed
   all_data$y_mix[all_data$S] <- selected_data$Y
 
-  recursive_model <- gam(y_imputed ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_recursive <- predict(recursive_model, data.frame(X = all_data$X))
+  repeated_model <- gam(y_imputed ~ s(X, bs = "tp"), data = all_data)
+  all_data$yhat_repeated <- predict(repeated_model, data.frame(X = all_data$X))
 
-  recursive_model_mix <- gam(y_mix ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_recursive_mix <- predict(recursive_model_mix, data.frame(X = all_data$X))
+  repeated_model_mix <- gam(y_mix ~ s(X, bs = "tp"), data = all_data)
+  all_data$yhat_repeated_mix <- predict(repeated_model_mix, data.frame(X = all_data$X))
 
   return(all_data)
 }
@@ -296,7 +296,7 @@ cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
   return(all_data)
 }
 
-cbind_doubly_robust <- function(all_data, direct_method = "yhat_recursive_mix") {
+cbind_doubly_robust <- function(all_data, direct_method = "yhat_repeated") {
   stopifnot(all(c(direct_method, c(
     "weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped"
   )) %in% colnames(all_data)))
@@ -341,7 +341,7 @@ cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
 
   all_data <- cbind_true(all_data)
   all_data <- cbind_naive(all_data)
-  all_data <- cbind_recursive(all_data, graph_known, amat)
+  all_data <- cbind_repeated(all_data, graph_known, amat)
   all_data <- cbind_ipw(all_data, graph_known, amat)
   all_data <- cbind_doubly_robust(all_data)
 
@@ -416,7 +416,7 @@ write_table <- function(table, file, append = FALSE) {
 }
 
 table_to_tex <- function(table, bold = NA) {
-  if (!is.na(bold)) {
+  if (!all(is.na(bold))) {
     table[bold] <- sprintf("\\textbf{%s}", table[bold])
   }
   apply(table, 1, function(row) paste(row, collapse = " & "))
@@ -426,7 +426,7 @@ palette <- c(
   "yhat_true" = "#009E73",
   "yhat_naive" = "#000000",
   "yhat_missp" = "#000000",
-  "yhat_recursive_mix" = "#D55E00",
+  "yhat_repeated" = "#D55E00",
   "yhat_ipw_true" = "#0072B2",
   # "yhat_ipw_true_clipped" = "#0072B2",
   "yhat_ipw_est" = "#56B4E9",
@@ -441,7 +441,7 @@ legend_labels <- c(
   "yhat_true" = "True",
   "yhat_naive" = "Naive",
   "yhat_missp" = "Misspecified",
-  "yhat_recursive_mix" = "Recursive",
+  "yhat_repeated" = "Repeated",
   "yhat_ipw_true" = "IPW (true)",
   "yhat_ipw_true_clipped" = "IPW (true, clipped)",
   "yhat_ipw_est" = "IPW (est.)",
@@ -466,8 +466,8 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     ann = FALSE, frame.plot = FALSE
   )
   points(selected_data$X, selected_data$Y, pch = 16, cex = trans_linear(weights_obs, .75, max(weights_obs)))
-  if ("y_imputed" %in% colnames(rejected_data)) {
-    points(rejected_data$X, rejected_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
+  if ("y_imputed" %in% colnames(all_data)) {
+    points(all_data$X, all_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
   }
 
   for (method in names(palette)) {
