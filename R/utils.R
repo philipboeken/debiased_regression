@@ -387,14 +387,18 @@ get_mse_stats <- function(list_of_mse_results) {
   list(means = means, vars = vars)
 }
 
-get_mse_formatted <- function(list_of_mse_results) {
+get_mse_formatted <- function(list_of_mse_results, bold = NA) {
   mse_stats <- get_mse_stats(list_of_mse_results)
   idx_order <- order(mse_stats$means$y)
   formatted_results <- list_of_mse_results[[1]][idx_order, ]
   formatted_results[, ] <- NA
   for (i in rownames(formatted_results)) {
     for (j in colnames(formatted_results)) {
-      formatted_results[i, j] <- sprintf("%.4e (%.3e)", mse_stats$means[i, j], mse_stats$vars[i, j])
+      if (!all(is.na(bold)) && bold[i, j]) {
+        formatted_results[i, j] <- sprintf("\\textbf{%.3e} (%.0e)", mse_stats$means[i, j], mse_stats$vars[i, j])
+      } else {
+        formatted_results[i, j] <- sprintf("%.3e (%.0e)", mse_stats$means[i, j], mse_stats$vars[i, j])
+      }
     }
   }
   formatted_results
@@ -411,8 +415,11 @@ write_table <- function(table, file, append = FALSE) {
   cat(out, "\n", file = file, sep = "\n", append = append)
 }
 
-table_to_tex <- function(table) {
-  apply(table, 1, function(row) paste(row, collapse=" & "))
+table_to_tex <- function(table, bold = NA) {
+  if (!is.na(bold)) {
+    table[bold] <- sprintf("\\textbf{%s}", table[bold])
+  }
+  apply(table, 1, function(row) paste(row, collapse = " & "))
 }
 
 palette <- c(
@@ -477,7 +484,8 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     lty <- sapply(items, function(method) if (endsWith(method, "_clipped")) 2 else 1)
     legend("bottomright",
       legend = legend_labels[items], col = palette[items],
-      lty = lty, lwd = 2.5, inset = 0.01, bg = "white"
+      lty = lty, lwd = 2.5, inset = 0.01, bg = "white", cex = 0.9,
+      y.intersp = 0.9, x.intersp = 0.9
     )
   }
 }

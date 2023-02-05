@@ -4,17 +4,16 @@ simulate_example1 <- function(n, f_Z = function(x) 3 * sin(x), f_Y = function(x,
   sd_X <- 3
   sd_Z <- 2
   sd_Y <- 2
-  
+
   all_data <- data.frame(X = rnorm(n, 0, sd_X))
   all_data$Z <- f_Z(all_data$X) + rnorm(n, 0, sd_Z)
   all_data$eps_Y <- rnorm(n, 0, sd_Y)
   all_data$Y <- f_Y(all_data$X, all_data$Z) + all_data$eps_Y
-  
+
   all_data$pi <- (all_data$X < (mean(all_data$X) + 2)) *
     trans_linear(sigmoid(as.numeric(scale(all_data$Z) * 20)), 1 / 20, 1)
   all_data$S <- runif(n) < all_data$pi
   all_data
-  
 }
 
 example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
@@ -32,14 +31,15 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Plot true and naive fit
   all_data$yhat_true <- ftrue(all_data$X)
   all_data <- cbind_naive(all_data)
-  if (save_figs) pdf("output/figures/example1/1_true_and_naive.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/1_true_and_naive.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data, legend_flag = TRUE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot imputed values
   all_data <- cbind_recursive(all_data, impute_linear = FALSE)
-  if (save_figs) pdf("output/figures/example1/2a_imputed.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/2a_imputed.pdf", width = 5, height = 5 * 2 / 3)
   offsets_y <- c(25, 45, 62)
   loc_x <- min(all_data$X) - 3
   rejected_data <- all_data[!all_data$S, ]
@@ -65,38 +65,41 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
 
   ################################################
   # Plot recursive method
-  if (save_figs) pdf("output/figures/example1/2b_imputed.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/2b_imputed.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data, legend_flag = TRUE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot IPW estimator with estimated probabilities
   all_data <- cbind_ipw(all_data)
   selected_data <- all_data[all_data$S, ]
-  if (save_figs) pdf("output/figures/example1/3_ipw_estimated_weights.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/3_ipw_estimated_weights.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_ipw_est")],
     weights_obs = trans_linear(selected_data$weights_est, 0.75, max(selected_data$weights_est) * 3 / 5),
     legend_flag = TRUE
   )
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot IPW estimator with known probabilities
-  if (save_figs) pdf("output/figures/example1/4_ipw_true_weights.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/4_ipw_true_weights.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_ipw_true")],
     weights_obs = trans_linear(selected_data$weights_true, 0.75, max(selected_data$weights_true) * 3 / 5),
     legend_flag = TRUE
   )
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot naive, the IPW estimated residuals, and the doubly robust estimator
-  all_data$yhat_missp <- lm(y_imputed ~ poly(X, degree=3), data=all_data)$fitted.values
+  all_data$yhat_missp <- lm(y_imputed ~ poly(X, degree = 3), data = all_data)$fitted.values
   all_data <- cbind_doubly_robust(all_data, direct_method = "yhat_missp")
   selected_data <- all_data[all_data$S, ]
   offset <- max(selected_data$dr_resid) - min(all_data$Y) + 5
   ord <- order(all_data$X)
-  if (save_figs) pdf("output/figures/example1/5_dr_true_weights.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/5_dr_true_weights.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_missp", "yhat_dr_true")],
     ylim = c(min(all_data$Y) - offset, max(all_data$Y)), legend_flag = FALSE
   )
@@ -108,17 +111,20 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   items <- c("yhat_true", "yhat_missp", "yhat_dr_true")
   legend_labels_temp <- legend_labels
   legend_labels_temp["yhat_dr_true"] <- "Doubly Robust"
-  legend("right",
+  legend("bottomright",
     legend = c(legend_labels_temp[items], "Residuals"), col = c(palette[items], "#F0E442"),
-    lty = 1, lwd = 2.5, inset = 0.01, bg = "white"
+    lty = 1, lwd = 2.5, inset = 0.01, bg = "white",
+    y.intersp = 0.9, x.intersp = 0.9
   )
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot overview of naive, imputed, IPW and DR estimates
   all_data <- cbind_doubly_robust(all_data, direct_method = "yhat_recursive_mix")
-  if (save_figs) pdf("output/figures/example1/6_overview.pdf", width = 6, height = 4)
+  if (save_figs) pdf("output/figures/example1/6_overview.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_recursive_mix", "yhat_ipw_true", "yhat_ipw_est", "yhat_dr_true")], legend_flag = TRUE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ######################## Plot 3D ########################
@@ -151,14 +157,15 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   #     zaxis = list(title = "Y")
   #   ))
   # fig
-  
+
   mse_result <- get_mse_result(all_data)
   mse_result <- mse_result[
-    c("yhat_naive", "yhat_recursive", "yhat_ipw_true", "yhat_ipw_est", "yhat_dr_true"),
+    c("yhat_naive", "yhat_recursive", "yhat_ipw_true", "yhat_ipw_est", "yhat_dr_true", "yhat_dr_est"),
     c("yhat_true", "y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_est")
   ]
-  mse_results <- table_to_tex(round(mse_result, 4))
-  labels <- c("Naive", "Imputed", "IPW (true)", "IPW (estimated)", "Doubly Robust")
+  maxes <- apply(table, 2, function(col) col == min(col))
+  mse_results <- table_to_tex(round(mse_result, 4), bold = maxes)
+  labels <- c("Naive", "RR", "IPW-t", "IPW-e", "DR-t", "DR-e")
   for (i in 1:length(mse_results)) {
     cat(labels[i], " & ", mse_results[[i]], "\\\\ \n")
   }
@@ -185,7 +192,7 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
 
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 9)
-save_figs <- get_arg_logical(3, TRUE)
+save_figs <- get_arg_logical(3, FALSE)
 
 start <- Sys.time()
 cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
