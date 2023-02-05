@@ -43,22 +43,42 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   offsets_y <- c(25, 45, 62)
   loc_x <- min(all_data$X) - 3
   rejected_data <- all_data[!all_data$S, ]
-  # plot_results(all_data[, c("X", "Y", "S", "y_imputed")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y)))
-  plot_results(all_data[, c("X", "Y", "S")], xlim = c(loc_x, max(all_data$X)), ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y)))
+  plot_results(all_data[, c("X", "Y", "S")],
+    xlim = c(loc_x, max(all_data$X)),
+    ylim = c(min(all_data$Y), max(all_data$Y) + max(offsets_y))
+  )
 
-  text(loc_x, mean(all_data$eps_Y) + offsets_y[3] - 1, latex2exp::TeX("$\\epsilon_Y$"), cex = 1.8, pos = 3, col = "black")
-  points(rejected_data$X, rejected_data$eps_Y + offsets_y[3], cex = .75, pch = 16, col = "gray")
-  points(selected_data$X, selected_data$eps_Y + offsets_y[3], cex = .75, pch = 16, col = "black")
-  text(mean(all_data$X), 48, latex2exp::TeX("$+$"), cex = 2, pos = 3, col = "black")
+  text(loc_x, mean(all_data$eps_Y) + offsets_y[3] - 1, latex2exp::TeX("$\\epsilon_Y$"),
+    cex = 1.8, pos = 3, col = "black"
+  )
+  points(rejected_data$X, rejected_data$eps_Y + offsets_y[3],
+    cex = .75, pch = 16, col = "gray"
+  )
+  points(selected_data$X, selected_data$eps_Y + offsets_y[3],
+    cex = .75, pch = 16, col = "black"
+  )
+  text(mean(all_data$X), 48, latex2exp::TeX("$+$"),
+    cex = 2, pos = 3, col = "black"
+  )
 
-  text(loc_x, mean(all_data$X / 2) + offsets_y[2] - 5, latex2exp::TeX("$\\frac{1}{2}X$"), cex = 1.5, pos = 3, col = "black")
+  text(loc_x, mean(all_data$X / 2) + offsets_y[2] - 5, latex2exp::TeX("$\\frac{1}{2}X$"),
+    cex = 1.5, pos = 3, col = "black"
+  )
   points(all_data$X, all_data$X / 2 + offsets_y[2], cex = .75, pch = 16)
-  text(mean(all_data$X), 34, latex2exp::TeX("$+$"), cex = 2, pos = 3, col = "black")
+  text(mean(all_data$X), 34, latex2exp::TeX("$+$"),
+    cex = 2, pos = 3, col = "black"
+  )
 
-  text(loc_x, mean(all_data$Z) + offsets_y[1] - 1, latex2exp::TeX("$Z$"), cex = 1.5, pos = 3, col = "black")
+  text(loc_x, mean(all_data$Z) + offsets_y[1] - 1, latex2exp::TeX("$Z$"),
+    cex = 1.5, pos = 3, col = "black"
+  )
   points(all_data$X, all_data$Z + offsets_y[1], cex = .75, pch = 16)
-  text(mean(all_data$X), 10, latex2exp::TeX("$=$"), cex = 2, pos = 3, col = "black")
-  text(loc_x, mean(all_data$Y) - 1, latex2exp::TeX("$Y$"), cex = 1.5, pos = 3, col = "black")
+  text(mean(all_data$X), 10, latex2exp::TeX("$=$"),
+    cex = 2, pos = 3, col = "black"
+  )
+  text(loc_x, mean(all_data$Y) - 1, latex2exp::TeX("$Y$"),
+    cex = 1.5, pos = 3, col = "black"
+  )
   if (save_figs) dev.off()
 
   print(lm(Y ~ X + Z, data = selected_data)$coefficients)
@@ -123,7 +143,10 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Plot overview of naive, imputed, IPW and DR estimates
   all_data <- cbind_doubly_robust(all_data, direct_method = "yhat_recursive_mix")
   if (save_figs) pdf("output/figures/example1/6_overview.pdf", width = 5, height = 5 * 2 / 3)
-  plot_results(all_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_recursive_mix", "yhat_ipw_true", "yhat_ipw_est", "yhat_dr_true")], legend_flag = TRUE)
+  plot_results(all_data[, c(
+    "X", "S", "Y", "yhat_true", "yhat_naive",
+    "yhat_recursive_mix", "yhat_ipw_true", "yhat_ipw_est", "yhat_dr_true"
+  )], legend_flag = TRUE)
   title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
