@@ -116,7 +116,7 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
 
   ################################################
   # Plot naive, the IPW estimated residuals, and the doubly robust estimator
-  all_data$yhat_missp <- lm(y_imputed ~ poly(X, degree = 3), data = all_data)$fitted.values
+  all_data$yhat_missp <- lm(y_imputed ~ poly(X, degree = 5), data = all_data)$fitted.values
   all_data <- cbind_doubly_robust(all_data, direct_method = "yhat_missp")
   selected_data <- all_data[all_data$S, ]
   offset <- max(selected_data$dr_resid) - min(all_data$Y) + 5
