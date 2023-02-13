@@ -26,6 +26,9 @@ sigmoid <- function(x, ymin = 0, ymax = 1) {
 mse <- function(y, yhat, weights = replicate(length(y), 1)) {
   stopifnot(length(y) == length(yhat))
   stopifnot(length(yhat) == length(weights))
+  if (length(weights) == 0) {
+    return(NA)
+  }
   sum(weights * (y - yhat)^2) / sum(weights)
 }
 
@@ -137,6 +140,38 @@ draw_gp <- function(x, kernel_fn, ...) {
   MASS::mvrnorm(1, mu = rep(0, times = nrow(x)), Sigma = cov_matrix)
 }
 
+lgbm <- function(formula, data, weights = NULL) {
+  if (is.null(weights)) {
+    weights <- replicate(nrow(data), 1)
+  }
+  response <- all.vars(formula[[2]])
+  covariates <- all.vars(formula[[3]])
+  model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
+    data = as.matrix(data[, covariates]),
+    label = as.matrix(data[, response]),
+    params = list(objective = "regression", metric = "l2"),
+    weight = weights,
+    verbose = -1
+  )))
+  unlockBinding("predict", model)
+  pred <- model$predict
+  model$predict <- function(data, ...) {
+    pred(as.matrix(data), ...)
+  }
+  lockBinding("predict", model)
+  model
+}
+
+gam_wrapper <- function(formula, data, weights = NULL) {
+  if (is.null(weights)) {
+    weights <- replicate(nrow(data), 1)
+  }
+  response <- all.vars(formula[[2]])
+  covariates <- all.vars(formula[[3]])
+  formula_2 <- as.formula(sprintf("%s ~ s(%s, bs=\"tp\")", response, paste(covariates, collapse = ", ")))
+  gam(formula = formula_2, data = data, weights = weights)
+}
+
 cbind_true <- function(all_data) {
   # 'True' model as if we have observed all data
   true_model <- gam(Y ~ s(X, bs = "tp"), data = all_data)
@@ -155,11 +190,8 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-cbind_repeated <- function(all_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
+get_imputation_model <- function(selected_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
-  selected_data <- all_data[all_data$S, ]
-
-  # Direct repeated (imputed) with gam
   if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
     if (impute_linear) {
       imputation_model <- lm(Y ~ Z, data = selected_data)
@@ -173,167 +205,133 @@ cbind_repeated <- function(all_data, graph_known = FALSE, amat = NULL, impute_li
       imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
     }
   }
-  all_data$y_imputed <- predict(imputation_model, data.frame(X = all_data$X, Z = all_data$Z))
-  all_data$y_mix <- all_data$y_imputed
-  all_data$y_mix[all_data$S] <- selected_data$Y
 
-  repeated_model <- gam(y_imputed ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_repeated <- predict(repeated_model, data.frame(X = all_data$X))
-
-  repeated_model_mix <- gam(y_mix ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_repeated_mix <- predict(repeated_model_mix, data.frame(X = all_data$X))
-
-  return(all_data)
+  imputation_model
 }
 
-cbind_ipw <- function(all_data, graph_known = FALSE, amat = NULL) {
+get_rr_model <- function(data, imputation_model) {
+  data$yhat_imputed <- predict(imputation_model, data)
+  gam(yhat_imputed ~ s(X, bs = "tp"), data = data)
+}
+
+cbind_imputations <- function(data, imputation_model) {
+  data$yhat_imputed <- predict(imputation_model, data.frame(X = data$X, Z = data$Z))
+  data$y_mix <- data$yhat_imputed
+  data$y_mix[data$S] <- data$Y[data$S]
+
+  data
+}
+
+cbind_repeated <- function(test_data, train_data = NULL, imp_model_data = NULL,
+                           graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
-  selected_data <- all_data[all_data$S, ]
+
+  if (is.null(train_data)) train_data <- test_data
+  if (is.null(imp_model_data)) imp_model_data <- train_data
+
+  # Direct repeated (imputed) with gam
+  selected_data <- imp_model_data[imp_model_data$S, ]
+  imputation_model <- get_imputation_model(selected_data, graph_known, amat, impute_linear)
+
+  train_data <- cbind_imputations(train_data, imputation_model)
+  test_data <- cbind_imputations(test_data, imputation_model)
+
+  mu_rr <- gam(yhat_imputed ~ s(X, bs = "tp"), data = train_data)
+  test_data$yhat_repeated <- predict(mu_rr, data.frame(X = test_data$X))
+
+  mu_rr_mix <- gam(y_mix ~ s(X, bs = "tp"), data = train_data)
+  test_data$yhat_repeated_mix <- predict(mu_rr_mix, data.frame(X = test_data$X))
+
+  return(test_data)
+}
+
+get_pi_model <- function(data, graph_known = FALSE, amat = NULL) {
+  stopifnot(!(graph_known && is.null(amat)))
+  if (graph_known && !"X" %in% get_parents("S", amat)) {
+    pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = data)
+  } else {
+    pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = data)
+  }
+
+  pi_model
+}
+
+cbind_weights <- function(data, pi_model) {
+  stopifnot(all(c("pi", "pi_hat") %in% colnames(data)))
+
+  p_s <- mean(pi_model$model$S)
+  data$weights_est <- p_s / data$pi_hat
+  data$weights_est_clip_05 <- p_s / clip_lower_quantile(data$pi_hat, 0.05)
+  data$weights_est_clip_1 <- p_s / clip_lower_quantile(data$pi_hat, 0.1)
+  data$weights_est_clip_25 <- p_s / clip_lower_quantile(data$pi_hat, 0.25)
+  data$weights_est_trans_05 <- p_s / trans_linear(data$pi_hat, 0.05, 1)
+  data$weights_est_trans_1 <- p_s / trans_linear(data$pi_hat, 0.1, 1)
+  data$weights_est_trans_25 <- p_s / trans_linear(data$pi_hat, 0.25, 1)
+  data$weights_true <- p_s / data$pi
+  data$weights_true_clip_05 <- p_s / clip_lower_quantile(data$pi, 0.05)
+  data$weights_true_clip_1 <- p_s / clip_lower_quantile(data$pi, 0.1)
+  data$weights_true_clip_25 <- p_s / clip_lower_quantile(data$pi, 0.25)
+  data$weights_true_trans_05 <- p_s / trans_linear(data$pi, 0.05, 1)
+  data$weights_true_trans_1 <- p_s / trans_linear(data$pi, 0.1, 1)
+  data$weights_true_trans_25 <- p_s / trans_linear(data$pi, 0.25, 1)
+
+  data$weights_true_clipped <- data$weights_true_trans_05
+  data$yhat_iw_true_clipped <- data$yhat_iw_true_trans_05
+  data$weights_est_clipped <- data$weights_est_trans_05
+  data$yhat_iw_est_clipped <- data$yhat_iw_est_trans_05
+
+  data
+}
+
+cbind_iw <- function(test_data, train_data = NULL, pi_model_data = NULL, model = gam_wrapper,
+                     graph_known = FALSE, amat = NULL) {
+  stopifnot(!(graph_known && is.null(amat)))
+
+  if (is.null(train_data)) train_data <- test_data
+  if (is.null(pi_model_data)) pi_model_data <- train_data
 
   # Estimate pi and calculate weights
-  if (graph_known && !"X" %in% get_parents("S", amat)) {
-    pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
-  } else {
-    pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = all_data)
+  pi_model <- get_pi_model(pi_model_data, graph_known, amat)
+
+  train_data$pi_hat <- predict(pi_model, train_data[, c("X", "Z")], type = "response")
+  test_data$pi_hat <- predict(pi_model, test_data[, c("X", "Z")], type = "response")
+  train_data <- cbind_weights(train_data, pi_model)
+  test_data <- cbind_weights(test_data, pi_model)
+
+  # IW with estimated weights
+  selected_data <- train_data[train_data$S, ]
+  types <- colnames(test_data)[sapply(colnames(test_data), function(s) startsWith(s, "weights_"))]
+  for (type in types) {
+    name <- sprintf("yhat_iw_%s", substr(type, nchar("weights_") + 1, nchar(type)))
+    mu_iw <- model(Y ~ X, data = selected_data, weights = selected_data[, type])
+    test_data[, name] <- predict(mu_iw, test_data)
   }
-  all_data$pi_hat <- pi_model$fitted.values
-  p_s <- sum(all_data$S) / length(all_data$S)
-  all_data$weights_est <- p_s / all_data$pi_hat
-  all_data$weights_est_clip_05 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.05)
-  all_data$weights_est_clip_1 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.1)
-  all_data$weights_est_clip_25 <- p_s / clip_lower_quantile(all_data$pi_hat, 0.25)
-  all_data$weights_est_trans_05 <- p_s / trans_linear(all_data$pi_hat, 0.05, 1)
-  all_data$weights_est_trans_1 <- p_s / trans_linear(all_data$pi_hat, 0.1, 1)
-  all_data$weights_est_trans_25 <- p_s / trans_linear(all_data$pi_hat, 0.25, 1)
-  all_data$weights_true <- p_s / all_data$pi
-  all_data$weights_true_clip_05 <- p_s / clip_lower_quantile(all_data$pi, 0.05)
-  all_data$weights_true_clip_1 <- p_s / clip_lower_quantile(all_data$pi, 0.1)
-  all_data$weights_true_clip_25 <- p_s / clip_lower_quantile(all_data$pi, 0.25)
-  all_data$weights_true_trans_05 <- p_s / trans_linear(all_data$pi, 0.05, 1)
-  all_data$weights_true_trans_1 <- p_s / trans_linear(all_data$pi, 0.1, 1)
-  all_data$weights_true_trans_25 <- p_s / trans_linear(all_data$pi, 0.25, 1)
-  selected_data <- all_data[all_data$S, ]
 
-  # IPW with estimated weights
-  ipw_model_est <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est
-  )
-  ipw_model_est_clip_05 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_clip_05
-  )
-  ipw_model_est_clip_1 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_clip_1
-  )
-  ipw_model_est_clip_25 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_clip_25
-  )
-  ipw_model_est_trans_05 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_trans_05
-  )
-  ipw_model_est_trans_1 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_trans_1
-  )
-  ipw_model_est_trans_25 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_trans_25
-  )
-  all_data$yhat_ipw_est <- predict(ipw_model_est, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_clip_05 <- predict(ipw_model_est_clip_05, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_clip_1 <- predict(ipw_model_est_clip_1, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_clip_25 <- predict(ipw_model_est_clip_25, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_trans_05 <- predict(ipw_model_est_trans_05, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_trans_1 <- predict(ipw_model_est_trans_1, data.frame(X = all_data$X))
-  all_data$yhat_ipw_est_trans_25 <- predict(ipw_model_est_trans_25, data.frame(X = all_data$X))
-
-  # IPW with true weights
-  ipw_model_true <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true
-  )
-  ipw_model_true_clip_05 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_clip_05
-  )
-  ipw_model_true_clip_1 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_clip_1
-  )
-  ipw_model_true_clip_25 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_clip_25
-  )
-  ipw_model_true_trans_05 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_trans_05
-  )
-  ipw_model_true_trans_1 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_trans_1
-  )
-  ipw_model_true_trans_25 <- gam(Y ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_trans_25
-  )
-  all_data$yhat_ipw_true <- predict(ipw_model_true, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_clip_05 <- predict(ipw_model_true_clip_05, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_clip_1 <- predict(ipw_model_true_clip_1, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_clip_25 <- predict(ipw_model_true_clip_25, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_trans_05 <- predict(ipw_model_true_trans_05, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_trans_1 <- predict(ipw_model_true_trans_1, data.frame(X = all_data$X))
-  all_data$yhat_ipw_true_trans_25 <- predict(ipw_model_true_trans_25, data.frame(X = all_data$X))
-
-  all_data$weights_true_clipped <- all_data$weights_true_trans_05
-  all_data$yhat_ipw_true_clipped <- all_data$yhat_ipw_true_trans_05
-  all_data$weights_est_clipped <- all_data$weights_est_trans_05
-  all_data$yhat_ipw_est_clipped <- all_data$yhat_ipw_est_trans_05
-
-  return(all_data)
+  return(test_data)
 }
 
-cbind_doubly_robust <- function(all_data, direct_method = "yhat_repeated") {
-  stopifnot(all(c(direct_method, c(
-    "weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped"
-  )) %in% colnames(all_data)))
+cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "yhat_repeated") {
+  if (is.null(train_data)) train_data <- test_data
+  
+  weight_types <- c("weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped")
+  stopifnot(all(c(direct_method, weight_types) %in% colnames(train_data)))
 
-  all_data$yhat_dr_direct <- all_data[, direct_method]
-  all_data$dr_resid <- all_data$Y - all_data$yhat_dr_direct
-  selected_data <- all_data[all_data$S, ]
+  test_data$yhat_dr_direct <- test_data[, direct_method]
+  train_data$yhat_dr_direct <- train_data[, direct_method]
+  train_data$dr_resid <- train_data$Y - train_data$yhat_dr_direct
+  test_data$dr_resid <- test_data$Y - test_data$yhat_dr_direct
+  selected_data <- train_data[train_data$S, ]
 
-  resid_ipw_model_est <- gam(dr_resid ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est
-  )
-  all_data$residhat_ipw_est <- predict(resid_ipw_model_est, data.frame(X = all_data$X))
-  all_data$yhat_dr_est <- all_data$yhat_dr_direct + all_data$residhat_ipw_est
+  for(weight_type in weight_types) {
+    r_iw <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data[, weight_type])
+    weight_name <- substr(weight_type, nchar("weights_") + 1, nchar(weight_type))
+    residhat_name <- sprintf("residhat_iw_%s", weight_name)
+    yhat_dr_name <- sprintf("yhat_dr_%s", weight_name)
+    test_data[, residhat_name] <- predict(r_iw, data.frame(X = test_data$X))
+    test_data[, yhat_dr_name] <- test_data$yhat_dr_direct + test_data[, residhat_name]
+  }
 
-  resid_ipw_model_est_clipped <- gam(dr_resid ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_est_clipped
-  )
-  all_data$residhat_ipw_est_clipped <- predict(resid_ipw_model_est_clipped, data.frame(X = all_data$X))
-  all_data$yhat_dr_est_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_est_clipped
-
-  resid_ipw_model_true <- gam(dr_resid ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true
-  )
-  all_data$residhat_ipw_true <- predict(resid_ipw_model_true, data.frame(X = all_data$X))
-  all_data$yhat_dr_true <- all_data$yhat_dr_direct + all_data$residhat_ipw_true
-
-  resid_ipw_model_true_clipped <- gam(dr_resid ~ s(X, bs = "tp"),
-    data = selected_data,
-    weights = selected_data$weights_true_clipped
-  )
-  all_data$residhat_ipw_true_clipped <- predict(resid_ipw_model_true_clipped, data.frame(X = all_data$X))
-  all_data$yhat_dr_true_clipped <- all_data$yhat_dr_direct + all_data$residhat_ipw_true_clipped
-
-  return(all_data)
+  return(test_data)
 }
 
 cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
@@ -341,8 +339,8 @@ cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
 
   all_data <- cbind_true(all_data)
   all_data <- cbind_naive(all_data)
-  all_data <- cbind_repeated(all_data, graph_known, amat)
-  all_data <- cbind_ipw(all_data, graph_known, amat)
+  all_data <- cbind_repeated(all_data, graph_known = graph_known, amat = amat)
+  all_data <- cbind_iw(all_data, graph_known = graph_known, amat = amat)
   all_data <- cbind_doubly_robust(all_data)
 
   return(all_data)
@@ -352,25 +350,30 @@ get_mse_result <- function(all_data) {
   vars <- colnames(all_data)
   estimators <- vars[sapply(vars, function(name) startsWith(name, "yhat"))]
 
-  selected_data <- all_data[all_data$S, ]
-
   mse_all_estimators <- function(y, df, ...) {
     sapply(estimators, function(estimator) mse(y, df[, estimator], ...))
   }
 
-  data.frame(
-    "y_selected" = mse_all_estimators(selected_data$Y, selected_data),
+  results <- data.frame(
     "y" = mse_all_estimators(all_data$Y, all_data),
     "yhat_true" = mse_all_estimators(all_data$yhat_true, all_data),
-    "yhat_imputed" = mse_all_estimators(all_data$y_imputed, all_data),
-    "y_mix" = mse_all_estimators(all_data$y_mix, all_data),
-    "y_weighted_true" = mse_all_estimators(selected_data$Y, selected_data,
-      weights = selected_data$weights_true
-    ),
-    "y_weighted_est" = mse_all_estimators(selected_data$Y, selected_data,
-      weights = selected_data$weights_est
-    )
+    "yhat_imputed" = mse_all_estimators(all_data$yhat_imputed, all_data),
+    "y_mix" = mse_all_estimators(all_data$y_mix, all_data)
   )
+
+  selected_data <- all_data[all_data$S, ]
+  if (nrow(selected_data) > 0) {
+    results <- cbind(results, data.frame(
+      "y_selected" = mse_all_estimators(selected_data$Y, selected_data),
+      "y_weighted_true" = mse_all_estimators(selected_data$Y, selected_data,
+        weights = selected_data$weights_true
+      ),
+      "y_weighted_est" = mse_all_estimators(selected_data$Y, selected_data,
+        weights = selected_data$weights_est
+      )
+    ))
+  }
+  results
 }
 
 get_mse_stats <- function(list_of_mse_results) {
@@ -427,10 +430,10 @@ palette <- c(
   "yhat_naive" = "#000000",
   "yhat_missp" = "#000000",
   "yhat_repeated" = "#D55E00",
-  "yhat_ipw_true" = "#0072B2",
-  # "yhat_ipw_true_clipped" = "#0072B2",
-  "yhat_ipw_est" = "#56B4E9",
-  # "yhat_ipw_est_clipped" = "#56B4E9",
+  "yhat_iw_true" = "#0072B2",
+  # "yhat_iw_true_clipped" = "#0072B2",
+  "yhat_iw_est" = "#56B4E9",
+  # "yhat_iw_est_clipped" = "#56B4E9",
   "yhat_dr_true" = "#E69F00",
   # "yhat_dr_true_clipped" = "#E69F00",
   "yhat_dr_est" = "#F0E442"
@@ -440,16 +443,16 @@ palette <- c(
 legend_labels <- c(
   "yhat_true" = "True",
   "yhat_naive" = "Naive",
-  "yhat_missp" = "Misspecified",
-  "yhat_repeated" = "Repeated",
-  "yhat_ipw_true" = "IPW (true)",
-  "yhat_ipw_true_clipped" = "IPW (true, clipped)",
-  "yhat_ipw_est" = "IPW (est.)",
-  "yhat_ipw_est_clipped" = "IPW (est., clipped)",
-  "yhat_dr_true" = "Doubly Robust (true)",
-  "yhat_dr_true_clipped" = "Doubly Robust (true, clipped)",
-  "yhat_dr_est" = "Doubly Robust (est.)",
-  "yhat_dr_est_clipped" = "Doubly Robust (est., clipped)"
+  "yhat_missp" = "Missp.",
+  "yhat_repeated" = "RR",
+  "yhat_iw_true" = "IW",
+  "yhat_iw_true_clipped" = "IW (true, clipped)",
+  "yhat_iw_est" = "IW (est.)",
+  "yhat_iw_est_clipped" = "IW (est., clipped)",
+  "yhat_dr_true" = "DR",
+  "yhat_dr_true_clipped" = "DR (true, clipped)",
+  "yhat_dr_est" = "DR (est.)",
+  "yhat_dr_est_clipped" = "DR (est., clipped)"
 )
 
 plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y),
@@ -466,8 +469,8 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     ann = FALSE, frame.plot = FALSE
   )
   points(selected_data$X, selected_data$Y, pch = 16, cex = trans_linear(weights_obs, .75, max(weights_obs)))
-  if ("y_imputed" %in% colnames(all_data)) {
-    points(all_data$X, all_data$y_imputed, pch = 3, cex = .75, col = "#D55E00")
+  if ("yhat_imputed" %in% colnames(all_data)) {
+    points(all_data$X, all_data$yhat_imputed, pch = 3, cex = .75, col = "#D55E00")
   }
 
   for (method in names(palette)) {

@@ -74,9 +74,9 @@ save(all_mse_results, file = sprintf("output/tables/exp2/results_%s.RData", m))
 formatted <- get_mse_formatted(all_mse_results)
 write_table(formatted, file = sprintf("output/tables/exp2/results_formatted_%s.txt", m), append = FALSE)
 
-rows <- c("yhat_naive", "yhat_repeated", "yhat_ipw_true_clipped", "yhat_ipw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped")
+rows <- c("yhat_naive", "yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped")
 columns <- c("yhat_true", "y", "yhat_imputed", "y_weighted_true", "y_weighted_est")
-labels <- c("Naive", "RR", "IPW-t", "IPW-e", "DR-t", "DR-e")
+labels <- c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e")
 
 output_table <- function(all_mse_results, rows, columns, labels) {
   all_mse_results <- lapply(all_mse_results, function(l) l[rows, columns])
