@@ -42,18 +42,10 @@ write_mse_results <- function(
     cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
     cat("n:", n, "\n\n", file = outfile, append = TRUE)
 
-    for (i in length(transformed_results)) {
+    for (i in 1:length(transformed_results)) {
         cat("Combined", names(transformed_results)[i], "\n", file = outfile, append = TRUE)
-
         all_formatted <- get_mse_formatted(transformed_results[[i]])
-
         write_table(all_formatted, file = outfile, append = TRUE)
-    }
-
-    for (i in 1:126) {
-        cat("Graph", i, "\n", file = outfile, append = TRUE)
-        formatted <- get_mse_formatted(mse_results_per_graph[[i]])
-        write_table(formatted, file = outfile, append = TRUE)
     }
 }
 

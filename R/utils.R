@@ -287,15 +287,15 @@ cbind_imputations <- function(data, imputation_model) {
   data
 }
 
-cbind_repeated <- function(test_data, train_data = NULL, imp_model_data = NULL,
+cbind_repeated <- function(test_data, train_data = NULL, imputation_model_data = NULL,
                            graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
 
   if (is.null(train_data)) train_data <- test_data
-  if (is.null(imp_model_data)) imp_model_data <- train_data
+  if (is.null(imputation_model_data)) imputation_model_data <- train_data
 
   # Direct repeated (imputed) with gam
-  selected_data <- imp_model_data[imp_model_data$S, ]
+  selected_data <- imputation_model_data[imputation_model_data$S, ]
   imputation_model <- get_imputation_model(selected_data, graph_known, amat, impute_linear)
 
   train_data <- cbind_imputations(train_data, imputation_model)
@@ -402,13 +402,25 @@ cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "y
   return(test_data)
 }
 
-cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
+cbind_predictions <- function(
+    test_data, train_data, pi_model_data = NULL,
+    imputation_model_data = NULL, graph_known = FALSE, amat = NULL) {
   stopifnot(!(graph_known && is.null(amat)))
+
+  if (is.null(train_data)) train_data <- test_data
+  if (is.null(pi_model_data)) pi_model_data <- train_data
+  if (is.null(imputation_model_data)) imputation_model_data <- train_data
 
   all_data <- cbind_true(all_data)
   all_data <- cbind_naive(all_data)
-  all_data <- cbind_repeated(all_data, graph_known = graph_known, amat = amat)
-  all_data <- cbind_iw(all_data, graph_known = graph_known, amat = amat)
+  all_data <- cbind_repeated(test_data, train_data,
+    imputation_model_data = imputation_model_data,
+    graph_known = graph_known, amat = amat
+  )
+  all_data <- cbind_iw(test_data, train_data,
+    pi_model_data = pi_model_data,
+    graph_known = graph_known, amat = amat
+  )
   all_data <- cbind_doubly_robust(all_data)
 
   return(all_data)

@@ -122,25 +122,24 @@ experiment1 <- function(
   amat <- get_graph(graph_nr)
   amat <- admg_to_dag(amat)
 
-  all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
-
-  all_data <- cbind_predictions(all_data, graph_known, amat)
+  all_data <- simulate_nonlinear(amat, 2*n, seed, pos_mode, indep_mode)
+  train_idx <- rownames(valid_graphs) %in% sample(1:2*n, n)
+  train_data <- all_data[train_idx, ]
+  test_data <- all_data[!train_idx, ]
+  test_data <- cbind_predictions(
+    test_data = test_data, train_data = train_data,
+    pi_model_data = all_data, imputation_data = all_data,
+    graph_known = graph_known, amat = amat
+  )
 
   if (plot_flag) {
-    plot_results(all_data)
+    plot_results(test_data)
   }
 
-  mse_result <- get_mse_result(all_data)
+  mse_result <- get_mse_result(train_data)
 
   return(mse_result)
 }
-
-# print(experiment1(graph_nr = 12, iter = 5, n=1000, pos_mode="npos", indep_mode = "indep", graph_known = FALSE, plot_flag = TRUE))
-# print(experiment1(
-#   graph_nr = 3, iter = 3, n = 400, pos_mode = "npos", indep_mode = "indep",
-#   graph_known = FALSE, plot_flag = TRUE
-# ))
-# stop()
 
 iter <- get_arg_numeric(1)
 n_iter <- get_arg_numeric(2)
@@ -148,7 +147,6 @@ n <- get_arg_numeric(3)
 pos_mode <- get_arg_character(4, "pos")
 indep_mode <- get_arg_character(5, "indep")
 graph_known <- get_arg_logical(6, FALSE)
-
 
 start <- Sys.time()
 cat("\nStarting expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known), "at", format(start), "\n")
