@@ -53,6 +53,42 @@ get_graph <- function(graph_nr) {
   amat
 }
 
+# Returns a list with the indices of:
+# DAGs with S a sink node
+# DAGs with S not a sink node
+# ADMGs with S a sink node
+# ADMGs with S not a sink node
+get_graph_ranges <- function(graph_nr) {
+  dags_idx <- sapply(1:nrow(valid_graphs), function(i) {
+    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+    biarrs <- amat * t(amat)
+    biarrs[lower.tri(biarrs, diag = TRUE)] <- 0
+    return(sum(biarrs) == 0)
+  })
+
+  s_sink_idx <- sapply(1:nrow(valid_graphs), function(i) {
+    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+    return(sum(amat[, "S"]) == 0)
+  })
+
+  x_to_s_idx <- sapply(1:nrow(valid_graphs), function(i) {
+    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+    return(amat["S", "X"] == 1 && amat["X", "S"] == 0)
+  })
+
+  return(list(
+    "graphs_all" = (1:length(dags_idx)),
+    "dags_s_sink" = (1:length(dags_idx))[dags_idx & s_sink_idx],
+    "dags_s_not_sink" = (1:length(dags_idx))[dags_idx & !s_sink_idx],
+    "admgs_s_sink" = (1:length(dags_idx))[!dags_idx & s_sink_idx],
+    "admgs_s_not_sink" = (1:length(dags_idx))[!dags_idx & !s_sink_idx],
+    "x_to_s" = (1:length(dags_idx))[x_to_s_idx]
+  ))
+}
+
 plot_graph <- function(amat) {
   qgraph::qgraph(t(amat),
     vsize = 30, label.cex = 1.4, esize = 4, asize = 14,
@@ -95,13 +131,13 @@ smaller_top_order <- function(v, w, amat) {
 }
 
 get_confounder_name <- function(var1, var2) {
-  sprintf("C_%s", paste(sort(c(var1, var2)), collapse=""))
+  sprintf("C_%s", paste(sort(c(var1, var2)), collapse = ""))
 }
 
 admg_to_dag <- function(amat) {
   biarrs <- amat * t(amat)
-  biarrs[lower.tri(biarrs, diag=TRUE)] <- 0
-  for(var1 in colnames(biarrs)) {
+  biarrs[lower.tri(biarrs, diag = TRUE)] <- 0
+  for (var1 in colnames(biarrs)) {
     connected <- rownames(biarrs)[biarrs[, var1]]
     for (var2 in connected) {
       amat[var1, var2] <- amat[var2, var1] <- 0
@@ -377,54 +413,59 @@ cbind_predictions <- function(all_data, graph_known = FALSE, amat = NULL) {
   return(all_data)
 }
 
-get_mse_result <- function(all_data) {
-  vars <- colnames(all_data)
+get_mse_result <- function(data) {
+  vars <- colnames(data)
   estimators <- vars[sapply(vars, function(name) startsWith(name, "yhat"))]
 
   mse_all_estimators <- function(y, df, ...) {
     sapply(estimators, function(estimator) mse(y, df[, estimator], ...))
   }
 
-  results <- data.frame(
-    "y" = mse_all_estimators(all_data$Y, all_data),
-    "yhat_true" = mse_all_estimators(all_data$yhat_true, all_data),
-    "yhat_imputed" = mse_all_estimators(all_data$yhat_imputed, all_data),
-    "y_mix" = mse_all_estimators(all_data$y_mix, all_data)
-  )
+  results <- data.frame(y = mse_all_estimators(data$Y, data))
+  interp_idx <- min(data$X[data$S]) <= data$X & data$X <= max(data$X[data$S])
+  dfs <- list(data, data[interp_idx, ], data[!interp_idx, ])
+  types <- c("", "_interp", "_extrap")
+  for (i in 1:length(dfs)) {
+    df <- dfs[[i]]
+    results[, paste0("y", types[i])] <- mse_all_estimators(df$Y, df)
+    results[, paste0("yhat_true", types[i])] <- mse_all_estimators(df$yhat_true, df)
+    results[, paste0("yhat_imputed", types[i])] <- mse_all_estimators(df$yhat_imputed, df)
+    results[, paste0("y_mix", types[i])] <- mse_all_estimators(df$y_mix, df)
+  }
 
-  selected_data <- all_data[all_data$S, ]
+  selected_data <- data[data$S, ]
   if (nrow(selected_data) > 0) {
     results <- cbind(results, data.frame(
       "y_selected" = mse_all_estimators(selected_data$Y, selected_data),
       "y_weighted_true" = mse_all_estimators(selected_data$Y, selected_data,
         weights = selected_data$weights_true
       ),
+      "y_weighted_true_clipped" = mse_all_estimators(selected_data$Y, selected_data,
+        weights = selected_data$weights_true_clipped
+      ),
       "y_weighted_est" = mse_all_estimators(selected_data$Y, selected_data,
         weights = selected_data$weights_est
+      ),
+      "y_weighted_est_clipped" = mse_all_estimators(selected_data$Y, selected_data,
+        weights = selected_data$weights_est_clipped
       )
     ))
   }
   results
 }
 
-get_mse_stats <- function(list_of_mse_results) {
-  means <- list_of_mse_results[[1]]
-  means[, ] <- NA
-  vars <- means
-  for (i in rownames(means)) {
-    for (j in colnames(means)) {
-      mse_for_type <- sapply(list_of_mse_results, function(e) e[i, j])
-      means[i, j] <- mean(mse_for_type)
-      vars[i, j] <- var(mse_for_type)
-    }
-  }
-  list(means = means, vars = vars)
+get_mse_stats <- function(mse_results) {
+  means <- as.matrix(sapply(mse_results, mean))
+  sds <- as.matrix(sapply(mse_results, sd))
+  dim(means) <- dim(sds) <- dim(mse_results)
+  dimnames(means) <- dimnames(sds) <- dimnames(mse_results)
+  list(means = data.frame(means), sds = data.frame(sds))
 }
 
-get_mse_formatted <- function(list_of_mse_results, bold = NA) {
-  mse_stats <- get_mse_stats(list_of_mse_results)
+get_mse_formatted <- function(mse_results, bold = NA) {
+  mse_stats <- get_mse_stats(mse_results)
   idx_order <- order(mse_stats$means$y)
-  formatted_results <- list_of_mse_results[[1]][idx_order, ]
+  formatted_results <- mse_stats$means[idx_order, ]
   formatted_results[, ] <- NA
   for (i in rownames(formatted_results)) {
     for (j in colnames(formatted_results)) {
@@ -432,13 +473,13 @@ get_mse_formatted <- function(list_of_mse_results, bold = NA) {
         formatted_results[i, j] <- sprintf(
           "\\textbf{%.3e} (%.0e)",
           mse_stats$means[i, j],
-          mse_stats$vars[i, j]
+          mse_stats$sds[i, j]
         )
       } else {
         formatted_results[i, j] <- sprintf(
           "%.3e (%.0e)",
           mse_stats$means[i, j],
-          mse_stats$vars[i, j]
+          mse_stats$sds[i, j]
         )
       }
     }

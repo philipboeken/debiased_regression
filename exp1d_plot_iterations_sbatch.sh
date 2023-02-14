@@ -11,7 +11,7 @@
 #
 #SBATCH --mail-type=END,FAIL,REQUEUE,TIME_LIMIT_80
 #
-#SBATCH --array=1-51
+#SBATCH --array=1-126
 
 # Run as: sbatch exp1d_plot_iterations_sbatch.sh <n_inter> <n_obs> <pos_mode> <indep_mode> <graph_known>
 

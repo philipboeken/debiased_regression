@@ -1,5 +1,18 @@
 source("R/utils.R")
 
+transform_results <- function(mse_results_per_graph) {
+  all_mse_results <- unlist(mse_results_per_graph, recursive = FALSE)
+  transformed <- as.list(numeric(prod(dim(all_mse_results[[1]]))))
+  dim(transformed) <- dim(all_mse_results[[1]])
+  dimnames(transformed) <- dimnames(all_mse_results[[1]])
+  for(col in colnames(all_mse_results[[1]])) {
+    for(row in rownames(all_mse_results[[1]])) {
+      transformed[[row, col]] <- sapply(all_mse_results, function(result) result[row, col])
+    }
+  }
+  transformed
+}
+
 get_mse_results_per_graph <- function(n_iter, n, pos_mode, indep_mode, graph_known) {
     load("data/exp1/valid_graphs.RData")
     mse_data_folder <- sprintf(
@@ -20,7 +33,7 @@ get_mse_results_per_graph <- function(n_iter, n, pos_mode, indep_mode, graph_kno
 }
 
 write_mse_results <- function(
-    mse_results_per_graph,
+    transformed_results,
     n_iter, n, pos_mode, indep_mode, graph_known) {
     outfile <- sprintf(
         "output/tables/exp1/results_formatted_%s_%s_%s_%s_%s.txt",
@@ -29,16 +42,15 @@ write_mse_results <- function(
     cat("n_iter:", n_iter, "\n", file = outfile, append = FALSE)
     cat("n:", n, "\n\n", file = outfile, append = TRUE)
 
-    for (graph_range in list(1:27, 28:51, 1:51)) {
-        cat("Combined:", range(graph_range), "\n", file = outfile, append = TRUE)
+    for (i in length(transformed_results)) {
+        cat("Combined", names(transformed_results)[i], "\n", file = outfile, append = TRUE)
 
-        all_mse_results <- unlist(mse_results_per_graph[graph_range], recursive = FALSE)
-        all_formatted <- get_mse_formatted(all_mse_results)
+        all_formatted <- get_mse_formatted(transformed_results[[i]])
 
         write_table(all_formatted, file = outfile, append = TRUE)
     }
 
-    for (i in 1:51) {
+    for (i in 1:126) {
         cat("Graph", i, "\n", file = outfile, append = TRUE)
         formatted <- get_mse_formatted(mse_results_per_graph[[i]])
         write_table(formatted, file = outfile, append = TRUE)
@@ -63,7 +75,19 @@ save(mse_results_per_graph,
     )
 )
 
-write_mse_results(mse_results_per_graph, n_iter, n, pos_mode, indep_mode, graph_known)
+graph_ranges <- get_graph_ranges()
+transformed_results <- lapply(graph_ranges, function(graph_range) {
+  transform_results(mse_results_per_graph[graph_range])
+})
+
+save(transformed_results,
+     file = sprintf(
+       "output/tables/exp1/results_data_transformed_%s_%s_%s_%s_%s.RData",
+       n_iter, n, pos_mode, indep_mode, graph_known
+     )
+)
+
+write_mse_results(transformed_results, n_iter, n, pos_mode, indep_mode, graph_known)
 
 end <- Sys.time()
 cat(

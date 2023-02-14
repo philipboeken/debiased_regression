@@ -18,11 +18,16 @@ simulate_example1 <- function(n, f_Z = function(x) 3 * sin(x), f_Y = function(x,
 
 print_mse_table <- function(data) {
   mse_result <- get_mse_result(data)
-  cols <- intersect(c("y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_est"), colnames(mse_result))
+  cols <- intersect(c(
+    "y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_true_clipped",
+    "y_weighted_est", "y_weighted_est_clipped",
+    "y_interp", "y_extrap"
+  ), colnames(mse_result))
   mse_result <- mse_result[
     c("yhat_naive", "yhat_repeated", "yhat_iw_true", "yhat_iw_est", "yhat_dr_true", "yhat_dr_est"),
     cols
   ]
+  print(mse_result)
   maxes <- apply(mse_result, 2, function(col) col == min(col))
   mse_results <- table_to_tex(round(mse_result, 2), bold = maxes)
   labels <- c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e")
@@ -208,18 +213,6 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Evaluation on entire test set
   cat("Evaluation on test set: \n")
   print_mse_table(test_data)
-
-  # Evaluation on interpolation part of test set
-  cat("Evaluation on interpolation part of test set: \n")
-  interp_idx <- min(test_data$X[test_data$S]) <= test_data$X & test_data$X <= max(test_data$X[test_data$S])
-  # interp_idx <- test_data$X <= mean(test_data$X)
-  test_data_interp <- test_data[interp_idx, ]
-  print_mse_table(test_data_interp)
-
-  # Evaluation on extrapolation part of test set
-  cat("Evaluation on extrapolation part of test set: \n")
-  test_data_extrap <- test_data[!interp_idx, ]
-  print_mse_table(test_data_extrap)
 }
 
 n <- get_arg_numeric(1, 400)
