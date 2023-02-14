@@ -2,10 +2,12 @@
 
 # TODO:
 # - Scale simulated vars to make the MSE have a better scale? Other parameters that make it more general?
-# - Check which graphs have X -> S, and for these graphs calculate MSE results for interpolation and extrapolation part. Especially wiht no positivity, this should matter.
+# - Check which graphs have X -> S, and for these graphs calculate MSE results for
+#   interpolation and extrapolation part. Especially wiht no positivity, this should matter.
 # - Also use LightGBM regression, this should extrapolate better for IW regression than GAM.
 # - Grid calculation of MSE (MSE-t) for pos and indep in range(0,1)
-# - ??? Misspecification of imputation m_{imp} and pi-model m_{pi}, grid calculation of MSE (MSE-t) of DR over these parameters. 
+# - ??? Misspecification of imputation m_{imp} and pi-model m_{pi}, grid calculation of
+#               MSE (MSE-t) of DR over these parameters. 
 #       Also plot m_{imp} vs MSE of RR, and plot m_{pi} vs MSE of IW
 # - bidirected edges?
 
@@ -29,87 +31,88 @@
 #       every value above this threshold it responds the same, but different as
 #       to any value below this threshold.
 #     So, mutliply with P(S=1) for completeness sake.
-# v We don't simulate e.g. Z -> S by passing Z through a GP and then a sigmoid, as we can then not properly tune positivity
+# v We don't simulate e.g. Z -> S by passing Z through a GP and then a sigmoid,
+#            as we can then not properly tune positivity
 
 source("R/utils.R")
 
 simulate_discr <- function(all_data, var, amat, n, pos_mode, indep_mode) {
-    parents <- get_parents(var, amat)
-
-    if (length(parents) == 0) {
-        all_data$pi <- 1 / 3
-    } else {
-        all_data$pi <- apply(sapply(parents, function(parent) {
-            sigmoid(scale(all_data[, parent]) * 10)
-        }), 1, prod)
-        # Scale selection probabilities between a lower bound and 1, to control positivity.
-        min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
-        all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
-    }
-
-    if (var == "S" && smaller_top_order("Y", "S", amat)) {
-        # Let selection probabilities depend on Y (allowing for no positivity in the Y-direction)
-        dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-        all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
-    }
-
-    all_data$S <- runif(n) < all_data$pi
-
-    all_data
+  parents <- get_parents(var, amat)
+  
+  if (length(parents) == 0) {
+    all_data$pi <- 1 / 3
+  } else {
+    all_data$pi <- apply(sapply(parents, function(parent) {
+      sigmoid(scale(all_data[, parent]) * 10)
+    }), 1, prod)
+    # Scale selection probabilities between a lower bound and 1, to control positivity.
+    min_prob <- c("pos" = 1 / 20, "wpos" = 1 / 100, "npos" = 0)[pos_mode]
+    all_data$pi <- trans_linear(all_data$pi, min_prob, 1)
+  }
+  
+  if (var == "S" && smaller_top_order("Y", "S", amat)) {
+    # Let selection probabilities depend on Y (allowing for no positivity in the Y-direction)
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+    all_data$pi <- as.numeric(all_data$pi * sigmoid(scale(all_data$Y) * 10, (1 - dep), 1))
+  }
+  
+  all_data$S <- runif(n) < all_data$pi
+  
+  all_data
 }
 
 simulate_cont <- function(all_data, var, amat, n, pos_mode, indep_mode) {
-    parents <- get_parents(var, amat)
-    if (length(parents) == 0) {
-        mu <- numeric(n)
-        eps <- runif(n, -2, 2)
-        eps <- eps / (2 * sd(eps))
-    } else {
-        mu <- draw_gp(all_data[, setdiff(parents, "S")], kernel_fn = matern_kernel, nu = 2.5)
-        eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
-        eps <- sd(mu) * eps / (2 * sd(eps))
-    }
-    all_data[, var] <- mu + eps
-
-    if ("S" %in% parents) {
-        shift <- c("pos" = 1, "wpos" = 2, "npos" = 3)[pos_mode]
-        all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * shift
-    } else if (var == "Y" && smaller_top_order("S", "Y", amat)) {
-        dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
-        all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * dep
-    }
-
-    all_data
+  parents <- get_parents(var, amat)
+  if (length(parents) == 0) {
+    mu <- numeric(n)
+    eps <- runif(n, -2, 2)
+    eps <- eps / (2 * sd(eps))
+  } else {
+    mu <- draw_gp(all_data[, setdiff(parents, "S")], kernel_fn = matern_kernel, nu = 2.5)
+    eps <- 4 * draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2)
+    eps <- sd(mu) * eps / (2 * sd(eps))
+  }
+  all_data[, var] <- mu + eps
+  
+  if ("S" %in% parents) {
+    shift <- c("pos" = 1, "wpos" = 2, "npos" = 3)[pos_mode]
+    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * shift
+  } else if (var == "Y" && smaller_top_order("S", "Y", amat)) {
+    dep <- c("indep" = 0, "wdep" = 1 / 2, "dep" = 1)[indep_mode]
+    all_data[all_data$S, var] <- all_data[all_data$S, var] - sd(all_data[, var]) * dep
+  }
+  
+  all_data
 }
 
 simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "indep") {
-    stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
-    stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
-    set.seed(seed)
-    top_order <- get_top_order(amat)
-
-    all_data <- data.frame(
-        X = numeric(n),
-        Y = numeric(n),
-        Z = numeric(n),
-        S = numeric(n)
-    )
-
-    while (sum(all_data$S) < 50) {
-        for (var in top_order) {
-            if (var == "S") {
-                all_data <- simulate_discr(all_data, var, amat, n, pos_mode, indep_mode)
-            } else {
-                all_data <- simulate_cont(all_data, var, amat, n, pos_mode, indep_mode)
-            }
-        }
-
-        if (sum(all_data$S) < 50) {
-            warning("Less than 50 observations selected, we're going to resample.")
-        }
+  stopifnot(pos_mode %in% c("pos", "wpos", "npos"))
+  stopifnot(indep_mode %in% c("indep", "wdep", "dep"))
+  set.seed(seed)
+  top_order <- get_top_order(amat)
+  
+  all_data <- data.frame(
+    X = numeric(n),
+    Y = numeric(n),
+    Z = numeric(n),
+    S = numeric(n)
+  )
+  
+  while (sum(all_data$S) < 50) {
+    for (var in top_order) {
+      if (var == "S") {
+        all_data <- simulate_discr(all_data, var, amat, n, pos_mode, indep_mode)
+      } else {
+        all_data <- simulate_cont(all_data, var, amat, n, pos_mode, indep_mode)
+      }
     }
-
-    return(all_data)
+    
+    if (sum(all_data$S) < 50) {
+      warning("Less than 50 observations selected, we're going to resample.")
+    }
+  }
+  
+  return(all_data)
 }
 
 experiment1 <- function(
@@ -117,21 +120,27 @@ experiment1 <- function(
     pos_mode = "pos", indep_mode = "indep",
     graph_known = FALSE, plot_flag = FALSE) {
   seed <- 100000 * graph_nr + iter
-
+  
   amat <- get_graph(graph_nr)
-
+  amat <- admg_to_dag(amat)
+  
   all_data <- simulate_nonlinear(amat, n, seed, pos_mode, indep_mode)
-
+  
   all_data <- cbind_predictions(all_data, graph_known, amat)
-
+  
   if (plot_flag) {
     plot_results(all_data)
   }
-
+  
   mse_result <- get_mse_result(all_data)
-
+  
   return(mse_result)
 }
+
+# print(experiment1(graph_nr = 12, iter = 1, n=400, pos_mode="pos", indep_mode = "indep", graph_known = FALSE, plot_flag = TRUE))
+# print(experiment1(graph_nr = 3, iter = 1, n=400, pos_mode="wpos", indep_mode = "indep",
+#                   graph_known = FALSE, plot_flag = TRUE))
+# stop()
 
 iter <- get_arg_numeric(1)
 n_iter <- get_arg_numeric(2)
@@ -140,20 +149,21 @@ pos_mode <- get_arg_character(4, "pos")
 indep_mode <- get_arg_character(5, "indep")
 graph_known <- get_arg_logical(6, FALSE)
 
+
 start <- Sys.time()
 cat("\nStarting expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known), "at", format(start), "\n")
 
 mse_outfolder <- sprintf("data/exp1/results_%s_%s_%s_%s_%s", n_iter, n, pos_mode, indep_mode, graph_known)
 dir.create(mse_outfolder, showWarnings = FALSE)
 
-for (graph_nr in 1:51) {
-    mse_result <- experiment1(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
-    outfile <- sprintf("%s/mse_result_%s_%s", mse_outfolder, graph_nr, iter)
-    save(mse_result, file = sprintf("%s.RData", outfile))
+for (graph_nr in 1:126) {
+  mse_result <- experiment1(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
+  outfile <- sprintf("%s/mse_result_%s_%s", mse_outfolder, graph_nr, iter)
+  save(mse_result, file = sprintf("%s.RData", outfile))
 }
 
 end <- Sys.time()
 cat(
-    "\nFinished expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known), "at", format(end),
-    "in", format(end - start), "\n"
+  "\nFinished expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known), "at", format(end),
+  "in", format(end - start), "\n"
 )
