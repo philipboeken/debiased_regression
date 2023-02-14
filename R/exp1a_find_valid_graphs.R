@@ -21,29 +21,26 @@ noCycles <- function(amat) {
 find_valid_graphs <- function() {
   library(pbapply)
   library(pcalg)
-  valid_graphs <- data.frame()
-
+  
   opts <- expand.grid(data.frame(replicate(16, c(0, 1))))
-
-  pbsapply(1:nrow(opts), function(i) {
+  
+  valid <- pbsapply(1:nrow(opts), function(i) {
     amat <- matrix(as.numeric(opts[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
-    g <- as(t(amat), "graphNEL")
+    amat <- admg_to_dag(amat)
     if (!isValidGraph(amat, type = "dag")) {
-      return()
+      return(FALSE)
     }
     # Uncomment this to only find graphs where S is a sink-node
-    # if (sum(amat[, "S"]) > 0) return()
+    # if (sum(amat[, "S"]) > 0) return(FALSE)
+    g <- as(t(amat), "graphNEL")
     john.pairs <- RBGL::johnson.all.pairs.sp(g)
-    if (!dsep("X", "Y", g = g, john.pairs = john.pairs) &&
-      !dsep("Y", "S", g = g, john.pairs = john.pairs) &&
-      !dsep("Y", "S", "X", g = g, john.pairs = john.pairs) &&
-      dsep("Y", "S", c("X", "Z"), g = g, john.pairs = john.pairs)) {
-      valid_graphs <<- rbind(valid_graphs, data.frame(opts[i, ]))
-    }
+    return(!dsep("X", "Y", g = g, john.pairs = john.pairs) &&
+             !dsep("Y", "S", "X", g = g, john.pairs = john.pairs) &&
+             dsep("Y", "S", c("X", "Z"), g = g, john.pairs = john.pairs))
   })
-
-  valid_graphs
+  
+  return(opts[valid, ])
 }
 
 plot_graphs <- function(graphs) {
@@ -52,9 +49,10 @@ plot_graphs <- function(graphs) {
     amat <- matrix(as.numeric(graphs[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     qgraph(t(amat),
-      vsize = 30, label.cex = 1.4, esize = 4, asize = 14,
-      layout = matrix(c(0, 1, 1, 0, 0, 0, -1, -1), nrow = 4),
-      mar = c(8, 8, 8, 8), edge.color = "black"
+           vsize = 30, label.cex = 1.4, esize = 4, asize = 14,
+           layout = matrix(c(0, 1, 1, 0, 0, 0, -1, -1), nrow = 4),
+           mar = c(8, 8, 8, 8), edge.color = "black",
+           bidirectional = TRUE
     )
   }
 }
@@ -69,17 +67,44 @@ if (!file.exists("data/exp1/valid_graphs.RData")) {
   load("data/exp1/valid_graphs.RData")
 }
 
+dags_idx <- sapply(1:nrow(valid_graphs), function(i) {
+  amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+  colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+  biarrs <- amat * t(amat)
+  biarrs[lower.tri(biarrs, diag=TRUE)] <- 0
+  return(sum(biarrs) == 0)
+})
 
-filename <- "output/figures/exp1/all_valid_graphs.pdf"
-if (!file.exists(filename)) {
-  pdf(filename, width = 7, height = 4)
-  par(mfrow = c(4, 7))
-  # In graphs 1:27 S is a sink node, in graphs 28:51 S is not a sink node
-  for (graphs_range in list(1:27, 28:51)) {
-    plot_graphs(valid_graphs[graphs_range, ])
-    par(mfrow = c(4, 7))
+s_sink_idx <- sapply(1:nrow(valid_graphs), function(i) {
+  amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+  colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
+  return(sum(amat[, "S"]) == 0)
+})
+
+graph_ranges <- list(
+  (1:length(dags_idx)),
+  (1:length(dags_idx))[dags_idx & s_sink_idx],
+  (1:length(dags_idx))[dags_idx & !s_sink_idx],
+  (1:length(dags_idx))[!dags_idx & s_sink_idx],
+  (1:length(dags_idx))[!dags_idx & !s_sink_idx]
+)
+
+filenames <- sprintf("output/figures/exp1/%s.pdf", c(
+  "all_valid_graphs", "1_valid_dags_s_sink", "2_valid_dags_s_not_sink",
+  "3_valid_admgs_s_sink", "4_valid_admgs_s_not_sink"
+))
+
+for(i in 1:length(graph_ranges)) {
+  graph_range <- graph_ranges[[i]]
+  width <- 8
+  height <- ceiling(length(graph_range)/width)
+  filename <- filenames[i]
+  if (!file.exists(filename)) {
+    pdf(filename, width = width, height = height)
+    par(mfrow = c(height, width))
+    plot_graphs(valid_graphs[graph_range, ])
+    dev.off()
   }
-  dev.off()
 }
 
 end <- Sys.time()

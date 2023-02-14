@@ -44,7 +44,7 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   train_data <- simulate_example1(n, f_Z, f_Y)
   selected_data <- train_data[train_data$S, ]
 
-  cat("#{S=1}: ", nrow(selected_data), "\n\n")
+  cat("Train #{S=1}: ", nrow(selected_data), "\n\n")
 
   ################################################
   # Plot true and naive fit
@@ -179,6 +179,7 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   ################################################
   # Generate test set and add estimations
   test_data <- simulate_example1(n, f_Z, f_Y)
+  cat("Test #{S=1}: ", sum(test_data$S), "\n\n")
   test_data <- cbind_true(test_data)
   test_data <- cbind_naive(test_data)
 
@@ -187,8 +188,10 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
     test_data[, c("Y", "X", "Z", "S", "pi")]
   )
 
-  test_data <- cbind_repeated(test_data, train_data, imp_model_data = all_data)
-  test_data <- cbind_iw(test_data, train_data, pi_model_data = all_data)
+  test_data <- cbind_repeated(test_data, train_data, imp_model_data = test_data)
+  # test_data <- cbind_repeated(test_data, train_data, imp_model_data = all_data)
+  test_data <- cbind_iw(test_data, train_data, pi_model_data = test_data)
+  # test_data <- cbind_iw(test_data, train_data, pi_model_data = all_data)
   test_data <- cbind_doubly_robust(test_data, train_data)
 
   ################################################
@@ -209,6 +212,7 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Evaluation on interpolation part of test set
   cat("Evaluation on interpolation part of test set: \n")
   interp_idx <- min(test_data$X[test_data$S]) <= test_data$X & test_data$X <= max(test_data$X[test_data$S])
+  # interp_idx <- test_data$X <= mean(test_data$X)
   test_data_interp <- test_data[interp_idx, ]
   print_mse_table(test_data_interp)
 

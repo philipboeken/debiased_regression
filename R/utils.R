@@ -94,6 +94,30 @@ smaller_top_order <- function(v, w, amat) {
   which(top_order == v) < which(top_order == w)
 }
 
+get_confounder_name <- function(var1, var2) {
+  sprintf("C_%s", paste(sort(c(var1, var2)), collapse=""))
+}
+
+admg_to_dag <- function(amat) {
+  biarrs <- amat * t(amat)
+  biarrs[lower.tri(biarrs, diag=TRUE)] <- 0
+  for(var1 in colnames(biarrs)) {
+    connected <- rownames(biarrs)[biarrs[, var1]]
+    for (var2 in connected) {
+      amat[var1, var2] <- amat[var2, var1] <- 0
+      conf_name <- get_confounder_name(var1, var2)
+      if (!conf_name %in% colnames(amat)) {
+        amat <- cbind(amat, numeric(nrow(amat)))
+        amat <- rbind(amat, numeric(ncol(amat)))
+        colnames(amat)[ncol(amat)] <- rownames(amat)[nrow(amat)] <- conf_name
+      }
+      amat[var1, conf_name] <- 1
+      amat[var2, conf_name] <- 1
+    }
+  }
+  amat
+}
+
 # Taken from:
 # https://www.r-bloggers.com/2019/07/sampling-paths-from-a-gaussian-process/
 
@@ -168,7 +192,10 @@ gam_wrapper <- function(formula, data, weights = NULL) {
   }
   response <- all.vars(formula[[2]])
   covariates <- all.vars(formula[[3]])
-  formula_2 <- as.formula(sprintf("%s ~ s(%s, bs=\"tp\")", response, paste(covariates, collapse = ", ")))
+  formula_2 <- as.formula(sprintf(
+    "%s ~ s(%s, bs=\"tp\")", response,
+    paste(covariates, collapse = ", ")
+  ))
   gam(formula = formula_2, data = data, weights = weights)
 }
 
@@ -190,7 +217,8 @@ cbind_naive <- function(all_data) {
   return(all_data)
 }
 
-get_imputation_model <- function(selected_data, graph_known = FALSE, amat = NULL, impute_linear = FALSE) {
+get_imputation_model <- function(selected_data, graph_known = FALSE,
+                                 amat = NULL, impute_linear = FALSE) {
   stopifnot(!(graph_known && is.null(amat)))
   if (graph_known && !"Y" %in% get_parents("X", amat) && !"X" %in% get_parents("Y", amat)) {
     if (impute_linear) {
@@ -312,7 +340,7 @@ cbind_iw <- function(test_data, train_data = NULL, pi_model_data = NULL, model =
 
 cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "yhat_repeated") {
   if (is.null(train_data)) train_data <- test_data
-  
+
   weight_types <- c("weights_est", "weights_est_clipped", "weights_true", "weights_true_clipped")
   stopifnot(all(c(direct_method, weight_types) %in% colnames(train_data)))
 
@@ -322,8 +350,11 @@ cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "y
   test_data$dr_resid <- test_data$Y - test_data$yhat_dr_direct
   selected_data <- train_data[train_data$S, ]
 
-  for(weight_type in weight_types) {
-    r_iw <- gam(dr_resid ~ s(X, bs = "tp"), data = selected_data, weights = selected_data[, weight_type])
+  for (weight_type in weight_types) {
+    r_iw <- gam(dr_resid ~ s(X, bs = "tp"),
+      data = selected_data,
+      weights = selected_data[, weight_type]
+    )
     weight_name <- substr(weight_type, nchar("weights_") + 1, nchar(weight_type))
     residhat_name <- sprintf("residhat_iw_%s", weight_name)
     yhat_dr_name <- sprintf("yhat_dr_%s", weight_name)
@@ -398,9 +429,17 @@ get_mse_formatted <- function(list_of_mse_results, bold = NA) {
   for (i in rownames(formatted_results)) {
     for (j in colnames(formatted_results)) {
       if (!all(is.na(bold)) && bold[i, j]) {
-        formatted_results[i, j] <- sprintf("\\textbf{%.3e} (%.0e)", mse_stats$means[i, j], mse_stats$vars[i, j])
+        formatted_results[i, j] <- sprintf(
+          "\\textbf{%.3e} (%.0e)",
+          mse_stats$means[i, j],
+          mse_stats$vars[i, j]
+        )
       } else {
-        formatted_results[i, j] <- sprintf("%.3e (%.0e)", mse_stats$means[i, j], mse_stats$vars[i, j])
+        formatted_results[i, j] <- sprintf(
+          "%.3e (%.0e)",
+          mse_stats$means[i, j],
+          mse_stats$vars[i, j]
+        )
       }
     }
   }
@@ -413,7 +452,9 @@ write_table <- function(table, file, append = FALSE) {
   out <- out_temp[1:keep]
   for (i in 2:(length(out_temp) / keep)) {
     length_skip <- max(nchar(rownames(table))) + 1
-    out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip), sep = "")
+    out <- paste(out, substring(out_temp[((i - 1) * keep + 1):(i * keep)], length_skip),
+      sep = ""
+    )
   }
   cat(out, "\n", file = file, sep = "\n", append = append)
 }
@@ -446,13 +487,13 @@ legend_labels <- c(
   "yhat_missp" = "Missp.",
   "yhat_repeated" = "RR",
   "yhat_iw_true" = "IW",
-  "yhat_iw_true_clipped" = "IW (true, clipped)",
-  "yhat_iw_est" = "IW (est.)",
-  "yhat_iw_est_clipped" = "IW (est., clipped)",
+  "yhat_iw_true_clipped" = "IW-tc",
+  "yhat_iw_est" = "IW-e",
+  "yhat_iw_est_clipped" = "IW-ec",
   "yhat_dr_true" = "DR",
-  "yhat_dr_true_clipped" = "DR (true, clipped)",
-  "yhat_dr_est" = "DR (est.)",
-  "yhat_dr_est_clipped" = "DR (est., clipped)"
+  "yhat_dr_true_clipped" = "DR-tc",
+  "yhat_dr_est" = "DR-e",
+  "yhat_dr_est_clipped" = "DR-ec"
 )
 
 plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_data$Y),
@@ -468,7 +509,10 @@ plot_results <- function(all_data, xlim = range(all_data$X), ylim = range(all_da
     xaxt = "n", yaxt = "n",
     ann = FALSE, frame.plot = FALSE
   )
-  points(selected_data$X, selected_data$Y, pch = 16, cex = trans_linear(weights_obs, .75, max(weights_obs)))
+  points(selected_data$X, selected_data$Y,
+    pch = 16,
+    cex = trans_linear(weights_obs, .75, max(weights_obs))
+  )
   if ("yhat_imputed" %in% colnames(all_data)) {
     points(all_data$X, all_data$yhat_imputed, pch = 3, cex = .75, col = "#D55E00")
   }

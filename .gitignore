@@ -3,6 +3,7 @@ temp*
 output/mse_old
 archive
 transfer_output.sh
+lightgbm.model
 
 #######################
 ### R related files ###
