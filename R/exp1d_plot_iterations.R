@@ -1,4 +1,5 @@
 source("R/utils.R")
+source("R/experiment1.R")
 
 graph_nr <- get_arg_numeric(1)
 n_iter <- get_arg_numeric(2)
