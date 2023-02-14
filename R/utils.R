@@ -59,6 +59,7 @@ get_graph <- function(graph_nr) {
 # ADMGs with S a sink node
 # ADMGs with S not a sink node
 get_graph_ranges <- function(graph_nr) {
+  load("data/exp1/valid_graphs.RData")
   dags_idx <- sapply(1:nrow(valid_graphs), function(i) {
     amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
