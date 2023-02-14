@@ -14,7 +14,7 @@ fig_outfolder <- sprintf("output/figures/exp1/graphs_plots", n_iter, n, pos_mode
 
 pdf(sprintf("%s/graph_%s_%s_%s_%s_%s_%s.pdf", fig_outfolder, graph_nr, n_iter, n, pos_mode, indep_mode, graph_known), width = 7, height = 4)
 for (iter in 1:n_iter) {
-    experiment(graph_nr, iter, n, pos_mode = pos_mode, indep_mode = indep_mode, graph_known = graph_known, plot_flag = TRUE)
+    experiment1(graph_nr, iter, n, pos_mode = pos_mode, indep_mode = indep_mode, graph_known = graph_known, plot_flag = TRUE)
 }
 dev.off()
 
