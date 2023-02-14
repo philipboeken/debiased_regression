@@ -9,9 +9,9 @@ data(BostonHousing2)
 
 simulate_boston_housing <- function() {
   all_data <- data.frame(
-    X = BostonHousing2$rm, # average number of rooms per dwelling
-    Z = BostonHousing2$lstat, # percentage of lower status of the population
-    Y = BostonHousing2$cmedv, # median value of owner-occupied homes in USD 1000’s
+    X = scale(BostonHousing2$rm), # average number of rooms per dwelling
+    Z = scale(BostonHousing2$lstat), # percentage of lower status of the population
+    Y = scale(BostonHousing2$cmedv), # median value of owner-occupied homes in USD 1000’s
     S = numeric(length(BostonHousing2$rm))
   )
 
@@ -73,7 +73,7 @@ experiment2 <- function(m = 100, seed = 1) {
   all_mse_results
 }
 
-m <- get_arg_numeric(1, 100)
+m <- get_arg_numeric(1, 1000)
 seed <- get_arg_numeric(2, 1)
 
 start <- Sys.time()
