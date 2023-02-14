@@ -122,8 +122,8 @@ experiment1 <- function(
   amat <- get_graph(graph_nr)
   amat <- admg_to_dag(amat)
 
-  all_data <- simulate_nonlinear(amat, 2*n, seed, pos_mode, indep_mode)
-  train_idx <- (1:(2*n)) %in% sample(1:(2*n), n)
+  all_data <- simulate_nonlinear(amat, round((3 / 2) * n), seed, pos_mode, indep_mode)
+  train_idx <- (1:(2 * n)) %in% sample(1:(2 * n), round((2 / 3) * n))
   train_data <- all_data[train_idx, ]
   test_data <- all_data[!train_idx, ]
   test_data <- cbind_predictions(

@@ -1,18 +1,5 @@
 source("R/utils.R")
 
-transform_results <- function(mse_results_per_graph) {
-  all_mse_results <- unlist(mse_results_per_graph, recursive = FALSE)
-  transformed <- as.list(numeric(prod(dim(all_mse_results[[1]]))))
-  dim(transformed) <- dim(all_mse_results[[1]])
-  dimnames(transformed) <- dimnames(all_mse_results[[1]])
-  for(col in colnames(all_mse_results[[1]])) {
-    for(row in rownames(all_mse_results[[1]])) {
-      transformed[[row, col]] <- sapply(all_mse_results, function(result) result[row, col])
-    }
-  }
-  transformed
-}
-
 get_mse_results_per_graph <- function(n_iter, n, pos_mode, indep_mode, graph_known) {
     load("data/exp1/valid_graphs.RData")
     mse_data_folder <- sprintf(
@@ -69,14 +56,14 @@ save(mse_results_per_graph,
 
 graph_ranges <- get_graph_ranges()
 transformed_results <- lapply(graph_ranges, function(graph_range) {
-  transform_results(mse_results_per_graph[graph_range])
+    transform_mse_results(unlist(mse_results_per_graph[graph_range], recursive = FALSE))
 })
 
 save(transformed_results,
-     file = sprintf(
-       "output/tables/exp1/results_data_transformed_%s_%s_%s_%s_%s.RData",
-       n_iter, n, pos_mode, indep_mode, graph_known
-     )
+    file = sprintf(
+        "output/tables/exp1/results_data_transformed_%s_%s_%s_%s_%s.RData",
+        n_iter, n, pos_mode, indep_mode, graph_known
+    )
 )
 
 write_mse_results(transformed_results, n_iter, n, pos_mode, indep_mode, graph_known)

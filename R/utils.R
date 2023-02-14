@@ -247,7 +247,7 @@ cbind_true <- function(test_data, train_data = NULL) {
 
 cbind_naive <- function(test_data, train_data = NULL) {
   if (is.null(train_data)) train_data <- test_data
-  
+
   selected_data <- train_data[train_data$S, ]
 
   # Naive model directly trained on observed data
@@ -399,7 +399,7 @@ cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "y
 }
 
 cbind_predictions <- function(
-    test_data, train_data, pi_model_data = NULL,
+    test_data, train_data = NULL, pi_model_data = NULL,
     imputation_model_data = NULL, graph_known = FALSE, amat = NULL) {
   stopifnot(!(graph_known && is.null(amat)))
 
@@ -463,6 +463,18 @@ get_mse_result <- function(data) {
   results
 }
 
+transform_mse_results <- function(mse_results) {
+  transformed <- as.list(numeric(prod(dim(mse_results[[1]]))))
+  dim(transformed) <- dim(mse_results[[1]])
+  dimnames(transformed) <- dimnames(mse_results[[1]])
+  for (col in colnames(mse_results[[1]])) {
+    for (row in rownames(mse_results[[1]])) {
+      transformed[[row, col]] <- sapply(mse_results, function(result) result[row, col])
+    }
+  }
+  transformed
+}
+
 get_mse_stats <- function(mse_results) {
   means <- as.matrix(sapply(mse_results, mean))
   sds <- as.matrix(sapply(mse_results, sd))
@@ -480,13 +492,13 @@ get_mse_formatted <- function(mse_results, bold = NA) {
     for (j in colnames(formatted_results)) {
       if (!all(is.na(bold)) && bold[i, j]) {
         formatted_results[i, j] <- sprintf(
-          "\\textbf{%.3e} (%.0e)",
+          "\\textbf{%.2f} {\\small (%.1f)}",
           mse_stats$means[i, j],
           mse_stats$sds[i, j]
         )
       } else {
         formatted_results[i, j] <- sprintf(
-          "%.3e (%.0e)",
+          "%.2f {\\small (%.1f)}",
           mse_stats$means[i, j],
           mse_stats$sds[i, j]
         )
