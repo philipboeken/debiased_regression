@@ -236,22 +236,25 @@ gam_wrapper <- function(formula, data, weights = NULL) {
   gam(formula = formula_2, data = data, weights = weights)
 }
 
-cbind_true <- function(all_data) {
+cbind_true <- function(test_data, train_data = NULL) {
+  if (is.null(train_data)) train_data <- test_data
   # 'True' model as if we have observed all data
-  true_model <- gam(Y ~ s(X, bs = "tp"), data = all_data)
-  all_data$yhat_true <- predict(true_model, data.frame(X = all_data$X))
+  true_model <- gam(Y ~ s(X, bs = "tp"), data = train_data)
+  test_data$yhat_true <- predict(true_model, data.frame(X = test_data$X))
 
-  return(all_data)
+  return(test_data)
 }
 
-cbind_naive <- function(all_data) {
-  selected_data <- all_data[all_data$S, ]
+cbind_naive <- function(test_data, train_data = NULL) {
+  if (is.null(train_data)) train_data <- test_data
+  
+  selected_data <- train_data[train_data$S, ]
 
   # Naive model directly trained on observed data
   naive_model <- gam(Y ~ s(X, bs = "tp"), data = selected_data)
-  all_data$yhat_naive <- predict(naive_model, data.frame(X = all_data$X))
+  test_data$yhat_naive <- predict(naive_model, data.frame(X = test_data$X))
 
-  return(all_data)
+  return(test_data)
 }
 
 get_imputation_model <- function(selected_data, graph_known = FALSE,
@@ -272,11 +275,6 @@ get_imputation_model <- function(selected_data, graph_known = FALSE,
   }
 
   imputation_model
-}
-
-get_rr_model <- function(data, imputation_model) {
-  data$yhat_imputed <- predict(imputation_model, data)
-  gam(yhat_imputed ~ s(X, bs = "tp"), data = data)
 }
 
 cbind_imputations <- function(data, imputation_model) {
@@ -341,9 +339,7 @@ cbind_weights <- function(data, pi_model) {
   data$weights_true_trans_25 <- p_s / trans_linear(data$pi, 0.25, 1)
 
   data$weights_true_clipped <- data$weights_true_trans_05
-  data$yhat_iw_true_clipped <- data$yhat_iw_true_trans_05
   data$weights_est_clipped <- data$weights_est_trans_05
-  data$yhat_iw_est_clipped <- data$yhat_iw_est_trans_05
 
   data
 }
@@ -411,19 +407,19 @@ cbind_predictions <- function(
   if (is.null(pi_model_data)) pi_model_data <- train_data
   if (is.null(imputation_model_data)) imputation_model_data <- train_data
 
-  all_data <- cbind_true(all_data)
-  all_data <- cbind_naive(all_data)
-  all_data <- cbind_repeated(test_data, train_data,
+  test_data <- cbind_true(test_data, train_data)
+  test_data <- cbind_naive(test_data, train_data)
+  test_data <- cbind_repeated(test_data, train_data,
     imputation_model_data = imputation_model_data,
     graph_known = graph_known, amat = amat
   )
-  all_data <- cbind_iw(test_data, train_data,
+  test_data <- cbind_iw(test_data, train_data,
     pi_model_data = pi_model_data,
     graph_known = graph_known, amat = amat
   )
-  all_data <- cbind_doubly_robust(all_data)
+  test_data <- cbind_doubly_robust(test_data)
 
-  return(all_data)
+  return(test_data)
 }
 
 get_mse_result <- function(data) {

@@ -63,7 +63,7 @@ simulate_discr <- function(all_data, var, amat, n, pos_mode, indep_mode) {
 
 simulate_cont <- function(all_data, var, amat, n, pos_mode, indep_mode) {
   parents <- get_parents(var, amat)
-  eps <- scale(draw_gp(matrix(runif(n)), kernel_fn = se_kernel, length = 3 / 2))
+  eps <- scale(draw_gp(runif(n), kernel_fn = se_kernel, length = 3 / 2))
   if (length(parents) == 0) {
     mu <- numeric(n)
   } else {
@@ -123,12 +123,12 @@ experiment1 <- function(
   amat <- admg_to_dag(amat)
 
   all_data <- simulate_nonlinear(amat, 2*n, seed, pos_mode, indep_mode)
-  train_idx <- rownames(valid_graphs) %in% sample(1:2*n, n)
+  train_idx <- (1:(2*n)) %in% sample(1:(2*n), n)
   train_data <- all_data[train_idx, ]
   test_data <- all_data[!train_idx, ]
   test_data <- cbind_predictions(
     test_data = test_data, train_data = train_data,
-    pi_model_data = all_data, imputation_data = all_data,
+    pi_model_data = all_data, imputation_model_data = all_data,
     graph_known = graph_known, amat = amat
   )
 
@@ -141,9 +141,9 @@ experiment1 <- function(
   return(mse_result)
 }
 
-iter <- get_arg_numeric(1)
-n_iter <- get_arg_numeric(2)
-n <- get_arg_numeric(3)
+iter <- get_arg_numeric(1, 1)
+n_iter <- get_arg_numeric(2, 20)
+n <- get_arg_numeric(3, 500)
 pos_mode <- get_arg_character(4, "pos")
 indep_mode <- get_arg_character(5, "indep")
 graph_known <- get_arg_logical(6, FALSE)
@@ -154,7 +154,8 @@ cat("\nStarting expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known)
 mse_outfolder <- sprintf("data/exp1/results_%s_%s_%s_%s_%s", n_iter, n, pos_mode, indep_mode, graph_known)
 dir.create(mse_outfolder, showWarnings = FALSE)
 
-for (graph_nr in 1:126) {
+# for (graph_nr in 1:126) {
+for (graph_nr in 1:2) {
   mse_result <- experiment1(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
   outfile <- sprintf("%s/mse_result_%s_%s", mse_outfolder, graph_nr, iter)
   save(mse_result, file = sprintf("%s.RData", outfile))

@@ -185,18 +185,16 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Generate test set and add estimations
   test_data <- simulate_example1(n, f_Z, f_Y)
   cat("Test #{S=1}: ", sum(test_data$S), "\n\n")
-  test_data <- cbind_true(test_data)
-  test_data <- cbind_naive(test_data)
+  test_data$yhat_true <- ftrue(test_data$X)
+  test_data <- cbind_naive(test_data, train_data)
 
   all_data <- rbind(
     train_data[, c("Y", "X", "Z", "S", "pi")],
     test_data[, c("Y", "X", "Z", "S", "pi")]
   )
 
-  test_data <- cbind_repeated(test_data, train_data, imp_model_data = test_data)
-  # test_data <- cbind_repeated(test_data, train_data, imp_model_data = all_data)
-  test_data <- cbind_iw(test_data, train_data, pi_model_data = test_data)
-  # test_data <- cbind_iw(test_data, train_data, pi_model_data = all_data)
+  test_data <- cbind_repeated(test_data, train_data, imputation_model_data = train_data)
+  test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data)
   test_data <- cbind_doubly_robust(test_data, train_data)
 
   ################################################
