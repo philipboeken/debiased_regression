@@ -272,13 +272,22 @@ if (!file.exists(data_filename)) {
   load(data_filename)
 }
 
-output_table(all_mse_results, columns = c(
-  "y", "y_selected", "yhat_imputed",
-  "y_weighted_true", "y_weighted_est"
-), print_sds = 0)
+output_table(all_mse_results,
+  rows = c(
+    "yhat_true", "yhat_naive", "yhat_repeated", "yhat_iw_true_clipped",
+    "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped"
+  ),
+  columns = c(
+    "y", "y_selected", "yhat_imputed",
+    "y_weighted_true", "y_weighted_est"
+  ), print_sds = 0
+)
+
+cat("\nInterpolation vs extrapolation:\n")
 output_table(all_mse_results,
   columns = c("y", "y_interp", "y_extrap"),
   rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped"),
+  row_labels = c("RR", "IW-t", "IW-e"),
   print_sds = 0
 )
 

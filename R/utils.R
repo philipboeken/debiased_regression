@@ -530,15 +530,15 @@ table_to_tex <- function(table, bold = NA) {
 output_table <- function(
     all_mse_results,
     rows = c(
-      "yhat_naive", "yhat_repeated", "yhat_iw_true_clipped",
+      "yhat_true", "yhat_naive", "yhat_repeated", "yhat_iw_true_clipped",
       "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped"
     ),
     columns = c("y", "yhat_imputed", "y_weighted_true", "y_weighted_est"),
-    row_labels = c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e"),
+    row_labels = c("True", "Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e"),
     print_means = TRUE, print_sds = TRUE) {
   all_mse_results <- all_mse_results[rows, columns]
   mse_stats <- get_mse_stats(all_mse_results)
-  maxes <- apply(mse_stats$means, 2, function(col) col == min(col))
+  maxes <- apply(mse_stats$means, 2, function(col) col == min(col[setdiff(rows, "yhat_true")]))
   all_formatted <- get_mse_formatted(all_mse_results,
     bold = maxes,
     print_means = print_means, print_sds = print_sds

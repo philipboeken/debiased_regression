@@ -54,5 +54,6 @@ graph_range <- names(transformed_results)[6]
 cat(graph_range, ":\n")
 output_table(x_to_s_results,
   columns = c("y", "y_interp", "y_extrap"),
-  rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped")
+  rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped"),
+  row_labels = c("RR", "IW-t", "IW-e")
 )

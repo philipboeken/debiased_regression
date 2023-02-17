@@ -87,6 +87,8 @@ if (!file.exists(data_filename)) {
 }
 
 output_table(all_mse_results)
+
+cat("\nInterpolation vs extrapolation:\n")
 output_table(all_mse_results,
   columns = c("y", "y_interp", "y_extrap")
   # rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped")
