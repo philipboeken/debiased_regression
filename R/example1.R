@@ -1,4 +1,5 @@
 source("R/utils.R")
+library(pbapply)
 
 simulate_example1 <- function(n, f_Z = function(x) 3 * sin(x), f_Y = function(x, z) z + x / 2) {
   sd_X <- 3
@@ -16,7 +17,7 @@ simulate_example1 <- function(n, f_Z = function(x) 3 * sin(x), f_Y = function(x,
   train_data
 }
 
-print_mse_table <- function(data, cols=c("y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_est")) {
+print_mse_table <- function(data, cols = c("y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_est")) {
   mse_result <- get_mse_result(data)
   cols <- intersect(cols, colnames(mse_result))
   mse_result <- mse_result[
@@ -34,7 +35,7 @@ print_mse_table <- function(data, cols=c("y", "y_selected", "yhat_imputed", "y_w
   cat("\n")
 }
 
-example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
+example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   set.seed(seed)
 
   ################################################
@@ -207,19 +208,79 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Evaluation on entire test set
   cat("Evaluation on test set: \n")
   print_mse_table(test_data)
-  
+
   cat("\nInterpolation extrapolation: \n")
   print_mse_table(test_data, cols = c("y", "y_interp", "y_extrap"))
+}
+
+example1_repeated <- function(n = 400, m = 500, seed = 1) {
+  set.seed(seed)
+
+  pblapply(1:m, function(i) {
+    f_Z <- function(x) 3 * sin(x)
+    f_Y <- function(x, z) z + x / 2
+    ftrue <- function(x) f_Y(x, f_Z(x))
+    train_data <- simulate_example1(n, f_Z, f_Y)
+    selected_data <- train_data[train_data$S, ]
+
+    train_data$yhat_true <- ftrue(train_data$X)
+    train_data <- cbind_naive(train_data)
+    train_data <- cbind_repeated(train_data, impute_linear = FALSE)
+    train_data <- cbind_iw(train_data)
+    train_data$yhat_missp <- lm(yhat_imputed ~ poly(X, degree = 5), data = train_data)$fitted.values
+    train_data <- cbind_doubly_robust(train_data, direct_method = "yhat_missp")
+    train_data <- cbind_doubly_robust(train_data, direct_method = "yhat_repeated")
+
+    ################################################
+    # Generate test set and add estimations
+    test_data <- simulate_example1(n, f_Z, f_Y)
+    test_data$yhat_true <- ftrue(test_data$X)
+    test_data <- cbind_naive(test_data, train_data)
+
+    all_data <- rbind(
+      train_data[, c("Y", "X", "Z", "S", "pi")],
+      test_data[, c("Y", "X", "Z", "S", "pi")]
+    )
+
+    test_data <- cbind_repeated(test_data, train_data, imputation_model_data = train_data)
+    test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data)
+    test_data <- cbind_doubly_robust(test_data, train_data)
+
+    mse_result <- get_mse_result(test_data)
+
+    return(mse_result)
+  })
 }
 
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 7)
 save_figs <- get_arg_logical(3, FALSE)
+m <- get_arg_numeric(4, 500)
 
 start <- Sys.time()
 cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
 
-example1(n, seed, save_figs)
+example1_single(n, seed, save_figs)
+
+data_filename <- sprintf("output/tables/example1/results_%s.RData", m)
+if (!file.exists(data_filename)) {
+  cat("Running", m, "iterations: \n")
+  all_mse_results <- example1_repeated(n, m = m, seed)
+  all_mse_results <- transform_mse_results(all_mse_results)
+  save(all_mse_results, file = data_filename)
+} else {
+  load(data_filename)
+}
+
+output_table(all_mse_results, columns = c(
+  "y", "y_selected", "yhat_imputed",
+  "y_weighted_true", "y_weighted_est"
+), print_sds = 0)
+output_table(all_mse_results,
+  columns = c("y", "y_interp", "y_extrap"),
+  rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped"),
+  print_sds = 0
+)
 
 end <- Sys.time()
 cat("\nFinished example1.R", c(n, seed, save_figs), "at", format(end), "in", format(end - start), "\n")

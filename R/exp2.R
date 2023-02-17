@@ -31,7 +31,7 @@ simulate_boston_housing <- function() {
 experiment2 <- function(m = 100, seed = 1) {
   set.seed(seed)
 
-  all_mse_results <- pblapply(1:m, function(i) {
+  pblapply(1:m, function(i) {
     all_data <- simulate_boston_housing()
     n <- nrow(all_data)
     train_idx <- (1:n) %in% sample(1:n, round(n / 2))
@@ -69,8 +69,6 @@ experiment2 <- function(m = 100, seed = 1) {
 
     return(mse_result)
   })
-
-  all_mse_results
 }
 
 m <- get_arg_numeric(1, 500)
@@ -78,31 +76,23 @@ seed <- get_arg_numeric(2, 1)
 
 start <- Sys.time()
 cat("\nStarting exp2.R", c(m, seed), "at", format(start), "\n")
+data_filename <- sprintf("output/tables/exp2/results_%s.RData", m)
+if (!file.exists(data_filename)) {
+  all_mse_results <- experiment2(m, seed)
+  all_mse_results <- transform_mse_results(all_mse_results)
+  save(all_mse_results, file = data_filename)
+} else {
+  load(data_filename)
+}
 
-all_mse_results <- experiment2(m, seed)
-all_mse_results <- transform_mse_results(all_mse_results)
-
-save(all_mse_results, file = sprintf("output/tables/exp2/results_%s.RData", m))
 formatted <- get_mse_formatted(all_mse_results)
 write_table(formatted, file = sprintf("output/tables/exp2/results_formatted_%s.txt", m), append = FALSE)
 
-rows <- c("yhat_naive", "yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped")
-columns <- c("y", "yhat_imputed", "y_weighted_true", "y_weighted_est")
-labels <- c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e")
-
-output_table <- function(all_mse_results, rows, columns, labels) {
-  all_mse_results <- all_mse_results[rows, columns]
-  mse_stats <- get_mse_stats(all_mse_results)
-  maxes <- apply(mse_stats$means, 2, function(col) col == min(col))
-  all_formatted <- get_mse_formatted(all_mse_results, bold = maxes)
-  mse_results <- table_to_tex(all_formatted[rows, columns])
-  for (i in 1:length(mse_results)) {
-    cat(labels[i], " & ", mse_results[[i]], "\\\\ \n")
-  }
-  cat("\n")
-}
-
-output_table(all_mse_results, rows, columns, labels)
+output_table(all_mse_results)
+output_table(all_mse_results,
+  columns = c("y", "y_interp", "y_extrap")
+  # rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped")
+)
 
 end <- Sys.time()
 cat("\nFinished exp2.R", c(m, seed), "at", format(end), "in", format(end - start), "\n")

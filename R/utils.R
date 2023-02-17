@@ -476,32 +476,31 @@ transform_mse_results <- function(mse_results) {
 }
 
 get_mse_stats <- function(mse_results) {
-  means <- as.matrix(sapply(mse_results, mean))
-  sds <- as.matrix(sapply(mse_results, sd))
+  means <- as.matrix(sapply(mse_results, function(arr) mean(arr, na.rm = TRUE)))
+  sds <- as.matrix(sapply(mse_results, function(arr) sd(arr, na.rm = TRUE)))
   dim(means) <- dim(sds) <- dim(mse_results)
   dimnames(means) <- dimnames(sds) <- dimnames(mse_results)
   list(means = data.frame(means), sds = data.frame(sds))
 }
 
-get_mse_formatted <- function(mse_results, bold = NA) {
+get_mse_formatted <- function(mse_results, bold = NA, print_sds = TRUE, print_means = TRUE) {
   mse_stats <- get_mse_stats(mse_results)
   idx_order <- order(mse_stats$means$y)
   formatted_results <- mse_stats$means[idx_order, ]
-  formatted_results[, ] <- NA
+  formatted_results[, ] <- ""
   for (i in rownames(formatted_results)) {
     for (j in colnames(formatted_results)) {
-      if (!all(is.na(bold)) && bold[i, j]) {
-        formatted_results[i, j] <- sprintf(
-          "\\textbf{%.2f} {\\small (%.1f)}",
-          mse_stats$means[i, j],
-          mse_stats$sds[i, j]
-        )
-      } else {
-        formatted_results[i, j] <- sprintf(
-          "%.2f {\\small (%.1f)}",
-          mse_stats$means[i, j],
-          mse_stats$sds[i, j]
-        )
+      if (print_means) {
+        if (!all(is.na(bold)) && bold[i, j]) {
+          formatted_results[i, j] <- sprintf("\\textbf{%.2f}", mse_stats$means[i, j])
+        } else {
+          formatted_results[i, j] <- sprintf("%.2f", mse_stats$means[i, j])
+        }
+      }
+      if (print_sds == 1) {
+        formatted_results[i, j] <- sprintf("%s {\\small (%.1f)}", formatted_results[i, j], mse_stats$sds[i, j])
+      } else if (print_sds == 2) {
+        formatted_results[i, j] <- sprintf("%s {\\scriptsize (%.0f)}", formatted_results[i, j], mse_stats$sds[i, j])
       }
     }
   }
@@ -526,6 +525,29 @@ table_to_tex <- function(table, bold = NA) {
     table[bold] <- sprintf("\\textbf{%s}", table[bold])
   }
   apply(table, 1, function(row) paste(row, collapse = " & "))
+}
+
+output_table <- function(
+    all_mse_results,
+    rows = c(
+      "yhat_naive", "yhat_repeated", "yhat_iw_true_clipped",
+      "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped"
+    ),
+    columns = c("y", "yhat_imputed", "y_weighted_true", "y_weighted_est"),
+    row_labels = c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e"),
+    print_means = TRUE, print_sds = TRUE) {
+  all_mse_results <- all_mse_results[rows, columns]
+  mse_stats <- get_mse_stats(all_mse_results)
+  maxes <- apply(mse_stats$means, 2, function(col) col == min(col))
+  all_formatted <- get_mse_formatted(all_mse_results,
+    bold = maxes,
+    print_means = print_means, print_sds = print_sds
+  )
+  mse_results <- table_to_tex(all_formatted[rows, columns])
+  for (i in 1:length(mse_results)) {
+    cat(row_labels[i], " & ", mse_results[[i]], "\\\\ \n")
+  }
+  cat("\n")
 }
 
 palette <- c(
