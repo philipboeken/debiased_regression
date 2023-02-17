@@ -4,7 +4,7 @@ load("output/tables/exp1/results_data_transformed_60_1000_npos_indep_FALSE.RData
 all_results <- transformed_results[[1]]
 graph_range <- names(transformed_results)[1]
 cat(graph_range, ":\n")
-output_table(results)
+output_table(all_results)
 cat("\n")
 
 qqnorm(log(all_results[["yhat_iw_true", "y"]]))

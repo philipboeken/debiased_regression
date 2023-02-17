@@ -86,9 +86,6 @@ if (!file.exists(data_filename)) {
   load(data_filename)
 }
 
-formatted <- get_mse_formatted(all_mse_results)
-write_table(formatted, file = sprintf("output/tables/exp2/results_formatted_%s.txt", m), append = FALSE)
-
 output_table(all_mse_results)
 output_table(all_mse_results,
   columns = c("y", "y_interp", "y_extrap")
