@@ -16,12 +16,34 @@ output_table <- function(transformed_results, rows, columns, labels) {
   cat("\n")
 }
 
-load("output/tables/exp1/results_data_transformed_20_500_npos_indep_FALSE.RData")
-# for(i in c(1:6)) {
-# for(i in c(1, 6)) {
-for(i in c(1)) {
-  graph_range <- names(transformed_results)[i]
-  cat(graph_range, ":\n")
-  output_table(transformed_results[[i]], rows, columns, labels)
-}
+load("output/tables/exp1/results_data_transformed_60_1000_npos_indep_FALSE.RData")
+all_results <- transformed_results[[1]]
+graph_range <- names(transformed_results)[1]
+cat(graph_range, ":\n")
+output_table(results, rows, columns, labels)
+cat("\n")
 
+qqnorm(log(all_results[["yhat_iw_true", "y"]]))
+qqnorm(log(all_results[["yhat_repeated", "y"]]))
+qqnorm(log(all_results[["yhat_naive", "y"]]))
+cat(
+  "p-value for H1 MSE repeated < MSE naive:",
+  wilcox.test(all_results[["yhat_repeated", "y"]],
+              all_results[["yhat_naive", "y"]],
+              alternative = "less")$p.value,
+  "\n"
+)
+cat(
+  "p-value for H1 that MSE naive < MSE IW-t:",
+  wilcox.test(all_results[["yhat_naive", "y"]],
+              all_results[["yhat_iw_true", "y"]],
+              alternative = "less")$p.value,
+  "\n"
+)
+cat("\n")
+
+cat("\nInterpolation vs extrapolation:\n")
+x_to_s_results <- transformed_results[[6]]
+graph_range <- names(transformed_results)[6]
+cat(graph_range, ":\n")
+output_table(x_to_s_results, rows, c("y", "y_interp", "y_extrap"), labels)

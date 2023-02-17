@@ -16,13 +16,9 @@ simulate_example1 <- function(n, f_Z = function(x) 3 * sin(x), f_Y = function(x,
   train_data
 }
 
-print_mse_table <- function(data) {
+print_mse_table <- function(data, cols=c("y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_est")) {
   mse_result <- get_mse_result(data)
-  cols <- intersect(c(
-    "y", "y_selected", "yhat_imputed", "y_weighted_true", "y_weighted_true_clipped",
-    "y_weighted_est", "y_weighted_est_clipped",
-    "y_interp", "y_extrap"
-  ), colnames(mse_result))
+  cols <- intersect(cols, colnames(mse_result))
   mse_result <- mse_result[
     c("yhat_naive", "yhat_repeated", "yhat_iw_true", "yhat_iw_est", "yhat_dr_true", "yhat_dr_est"),
     cols
@@ -211,6 +207,9 @@ example1 <- function(n = 400, seed = 1, save_figs = FALSE) {
   # Evaluation on entire test set
   cat("Evaluation on test set: \n")
   print_mse_table(test_data)
+  
+  cat("\nInterpolation extrapolation: \n")
+  print_mse_table(test_data, cols = c("y", "y_interp", "y_extrap"))
 }
 
 n <- get_arg_numeric(1, 400)
