@@ -11,7 +11,7 @@ bash run_experiment1.sh 60 1000
 
 or on a single thread:
 ```
-NITER = 10
+NITER = 60
 NOBS = 1000
 POSMODE = npos
 INDEPMODE = indep
