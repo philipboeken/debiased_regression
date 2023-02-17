@@ -60,8 +60,9 @@ experiment2 <- function(m = 100, seed = 1) {
       )
 
       selected_data <- all_data[all_data$S, ]
-      pdf("output/figures/exp2/plot.pdf", width = 7, height = 4)
-      plot_results(all_data, weights_obs = selected_data$weights_true_trans_05)
+      pdf("output/figures/exp2/exp2_plot.pdf", width = 7, height = 4)
+      plot_results(all_data, weights_obs = selected_data$weights_true_clipped, legend_flag = TRUE)
+      title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
       dev.off()
     }
 

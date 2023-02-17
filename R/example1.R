@@ -254,7 +254,7 @@ example1_repeated <- function(n = 400, m = 500, seed = 1) {
 
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 7)
-save_figs <- get_arg_logical(3, FALSE)
+save_figs <- get_arg_logical(3, TRUE)
 m <- get_arg_numeric(4, 500)
 
 start <- Sys.time()
