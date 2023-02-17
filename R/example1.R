@@ -64,7 +64,7 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   offsets_y <- c(25, 45, 62)
   loc_x <- min(train_data$X) - 3
   rejected_data <- train_data[!train_data$S, ]
-  plot_results(train_data[, c("X", "Y", "S")],
+  plot_results(train_data[ , c("X", "Y", "S")],
     xlim = c(loc_x, max(train_data$X)),
     ylim = c(min(train_data$Y), max(train_data$Y) + max(offsets_y))
   )
@@ -107,7 +107,7 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   ################################################
   # Plot repeated method
   if (save_figs) pdf("output/figures/example1/2b_imputed.pdf", width = 5, height = 5 * 2 / 3)
-  plot_results(train_data, legend_flag = TRUE)
+  plot_results(train_data[, -which(colnames(train_data) == "yhat_naive")], legend_flag = TRUE)
   title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
@@ -116,7 +116,7 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   train_data <- cbind_iw(train_data)
   selected_data <- train_data[train_data$S, ]
   if (save_figs) pdf("output/figures/example1/3_iw_estimated_weights.pdf", width = 5, height = 5 * 2 / 3)
-  plot_results(train_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_iw_est")],
+  plot_results(train_data[, c("X", "S", "Y", "yhat_true", "yhat_iw_est")],
     weights_obs = trans_linear(selected_data$weights_est, 0.75, max(selected_data$weights_est) * 3 / 5),
     legend_flag = TRUE
   )
@@ -126,7 +126,7 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   ################################################
   # Plot IW estimator with known probabilities
   if (save_figs) pdf("output/figures/example1/4_iw_true_weights.pdf", width = 5, height = 5 * 2 / 3)
-  plot_results(train_data[, c("X", "S", "Y", "yhat_true", "yhat_naive", "yhat_iw_true")],
+  plot_results(train_data[, c("X", "S", "Y", "yhat_true", "yhat_iw_true")],
     weights_obs = trans_linear(selected_data$weights_true, 0.75, max(selected_data$weights_true) * 3 / 5),
     legend_flag = TRUE
   )
