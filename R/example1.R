@@ -50,9 +50,19 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
 
   ################################################
   # Plot true and naive fit
+  if (save_figs) pdf("output/figures/example1/1a_none.pdf", width = 5, height = 5 * 2 / 3)
+  plot_results(train_data, legend_flag = FALSE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
+  if (save_figs) dev.off()
+  
   train_data$yhat_true <- ftrue(train_data$X)
+  if (save_figs) pdf("output/figures/example1/1b_true.pdf", width = 5, height = 5 * 2 / 3)
+  plot_results(train_data, legend_flag = FALSE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
+  if (save_figs) dev.off()
+  
   train_data <- cbind_naive(train_data)
-  if (save_figs) pdf("output/figures/example1/1_true_and_naive.pdf", width = 5, height = 5 * 2 / 3)
+  if (save_figs) pdf("output/figures/example1/1c_true_and_naive.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(train_data, legend_flag = TRUE)
   title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
@@ -107,12 +117,20 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
   ################################################
   # Plot repeated method
   if (save_figs) pdf("output/figures/example1/2b_imputed.pdf", width = 5, height = 5 * 2 / 3)
+  plot_results(train_data[, -which(colnames(train_data) %in% c("yhat_naive", "yhat_repeated"))], legend_flag = TRUE)
+  title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
+  if (save_figs) dev.off()
+  
+  ################################################
+  # Plot repeated method
+  if (save_figs) pdf("output/figures/example1/2c_imputed.pdf", width = 5, height = 5 * 2 / 3)
   plot_results(train_data[, -which(colnames(train_data) == "yhat_naive")], legend_flag = TRUE)
   title(xlab = "X", ylab = "Y", line = -1, cex.lab = 1.2, las = 3)
   if (save_figs) dev.off()
 
   ################################################
   # Plot IW estimator with estimated probabilities
+  # train_data <- cbind_iw(train_data, model=lgbm)
   train_data <- cbind_iw(train_data)
   selected_data <- train_data[train_data$S, ]
   if (save_figs) pdf("output/figures/example1/3_iw_estimated_weights.pdf", width = 5, height = 5 * 2 / 3)
@@ -244,6 +262,7 @@ example1_repeated <- function(n = 400, m = 500, seed = 1) {
 
     test_data <- cbind_repeated(test_data, train_data, imputation_model_data = train_data)
     test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data)
+    # test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data, model=lgbm)
     test_data <- cbind_doubly_robust(test_data, train_data)
 
     mse_result <- get_mse_result(test_data)
@@ -254,8 +273,8 @@ example1_repeated <- function(n = 400, m = 500, seed = 1) {
 
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 7)
-save_figs <- get_arg_logical(3, TRUE)
-m <- get_arg_numeric(4, 500)
+save_figs <- get_arg_logical(3, FALSE)
+m <- get_arg_numeric(4, 1)
 
 start <- Sys.time()
 cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
@@ -263,14 +282,14 @@ cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
 example1_single(n, seed, save_figs)
 
 data_filename <- sprintf("output/tables/example1/results_%s.RData", m)
-if (!file.exists(data_filename)) {
+# if (!file.exists(data_filename)) {
   cat("Running", m, "iterations: \n")
   all_mse_results <- example1_repeated(n, m = m, seed)
   all_mse_results <- transform_mse_results(all_mse_results)
   save(all_mse_results, file = data_filename)
-} else {
-  load(data_filename)
-}
+# } else {
+#   load(data_filename)
+# }
 
 output_table(all_mse_results,
   rows = c(
@@ -280,7 +299,7 @@ output_table(all_mse_results,
   columns = c(
     "y", "y_selected", "yhat_imputed",
     "y_weighted_true", "y_weighted_est"
-  ), print_sds = 0
+  ), print_sds = 2
 )
 
 cat("\nInterpolation vs extrapolation:\n")
@@ -290,6 +309,14 @@ output_table(all_mse_results,
   row_labels = c("RR", "IW-t", "IW-e"),
   print_sds = 0
 )
+output_table(all_mse_results,
+             columns = c("y", "y_interp", "y_extrap"),
+             rows = c("yhat_naive", "yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped",
+                      "yhat_dr_true_clipped", "yhat_dr_est_clipped", "yhat_true"),
+             row_labels = c("Naive", "RR", "IW-t", "IW-e", "DR-t", "DR-e", "True"),
+             print_sds = 2
+)
+
 
 end <- Sys.time()
 cat("\nFinished example1.R", c(n, seed, save_figs), "at", format(end), "in", format(end - start), "\n")

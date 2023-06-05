@@ -201,19 +201,29 @@ draw_gp <- function(x, kernel_fn, ...) {
   MASS::mvrnorm(1, mu = rep(0, times = nrow(x)), Sigma = cov_matrix)
 }
 
-lgbm <- function(formula, data, weights = NULL) {
+lgbm <- function(formula, data, family = gaussian(link = "identity"), weights = NULL) {
   if (is.null(weights)) {
     weights <- replicate(nrow(data), 1)
   }
   response <- all.vars(formula[[2]])
   covariates <- all.vars(formula[[3]])
-  model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
-    data = as.matrix(data[, covariates]),
-    label = as.matrix(data[, response]),
-    params = list(objective = "regression", metric = "l2"),
-    weight = weights,
-    verbose = -1
-  )))
+  if (family$family == "gaussian") {
+    model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
+      data = as.matrix(data[, covariates]),
+      label = as.matrix(data[, response]),
+      params = list(objective = "regression", metric = "l2"),
+      weight = weights,
+      verbose = -1
+    )))
+  } else if (family$family == "binomial") {
+    model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
+      data = as.matrix(data[, covariates]),
+      label = as.matrix(data[, response]),
+      params = list(objective = "binary", metric = "cross_entropy"),
+      weight = weights,
+      verbose = -1
+    )))
+  }
   unlockBinding("predict", model)
   pred <- model$predict
   model$predict <- function(data, ...) {
@@ -240,6 +250,7 @@ cbind_true <- function(test_data, train_data = NULL) {
   if (is.null(train_data)) train_data <- test_data
   # 'True' model as if we have observed all data
   true_model <- gam(Y ~ s(X, bs = "tp"), data = train_data)
+  # true_model <- lgbm(Y ~ X, data = train_data)
   test_data$yhat_true <- predict(true_model, data.frame(X = test_data$X))
 
   return(test_data)
@@ -252,6 +263,7 @@ cbind_naive <- function(test_data, train_data = NULL) {
 
   # Naive model directly trained on observed data
   naive_model <- gam(Y ~ s(X, bs = "tp"), data = selected_data)
+  # naive_model <- lgbm(Y ~ X, data = selected_data)
   test_data$yhat_naive <- predict(naive_model, data.frame(X = test_data$X))
 
   return(test_data)
@@ -265,12 +277,14 @@ get_imputation_model <- function(selected_data, graph_known = FALSE,
       imputation_model <- lm(Y ~ Z, data = selected_data)
     } else {
       imputation_model <- gam(Y ~ s(Z, bs = "tp"), data = selected_data)
+      # imputation_model <- lgbm(Y ~ Z, data = selected_data)
     }
   } else {
     if (impute_linear) {
       imputation_model <- lm(Y ~ Z + X, data = selected_data)
     } else {
       imputation_model <- gam(Y ~ s(X, Z, bs = "tp"), data = selected_data)
+      # imputation_model <- lgbm(Y ~ X+Z, data = selected_data)
     }
   }
 
@@ -300,9 +314,11 @@ cbind_repeated <- function(test_data, train_data = NULL, imputation_model_data =
   test_data <- cbind_imputations(test_data, imputation_model)
 
   mu_rr <- gam(yhat_imputed ~ s(X, bs = "tp"), data = train_data)
+  # mu_rr <- lgbm(yhat_imputed ~ X, data = train_data)
   test_data$yhat_repeated <- predict(mu_rr, data.frame(X = test_data$X))
 
   mu_rr_mix <- gam(y_mix ~ s(X, bs = "tp"), data = train_data)
+  # mu_rr_mix <- lgbm(y_mix ~ X, data = train_data)
   test_data$yhat_repeated_mix <- predict(mu_rr_mix, data.frame(X = test_data$X))
 
   return(test_data)
@@ -314,6 +330,7 @@ get_pi_model <- function(data, graph_known = FALSE, amat = NULL) {
     pi_model <- gam(S ~ s(Z, bs = "tp"), family = binomial(link = "logit"), data = data)
   } else {
     pi_model <- gam(S ~ s(X, Z, bs = "tp"), family = binomial(link = "logit"), data = data)
+    # pi_model <- lgbm(S ~ X+Z, family = binomial(link = "logit"), data = data)
   }
 
   pi_model
@@ -355,7 +372,9 @@ cbind_iw <- function(test_data, train_data = NULL, pi_model_data = NULL, model =
   pi_model <- get_pi_model(pi_model_data, graph_known, amat)
 
   train_data$pi_hat <- predict(pi_model, train_data[, c("X", "Z")], type = "response")
+  # train_data$pi_hat <- predict(pi_model, train_data[, c("X", "Z")])
   test_data$pi_hat <- predict(pi_model, test_data[, c("X", "Z")], type = "response")
+  # test_data$pi_hat <- predict(pi_model, test_data[, c("X", "Z")])
   train_data <- cbind_weights(train_data, pi_model)
   test_data <- cbind_weights(test_data, pi_model)
 
@@ -385,6 +404,7 @@ cbind_doubly_robust <- function(test_data, train_data = NULL, direct_method = "y
 
   for (weight_type in weight_types) {
     r_iw <- gam(dr_resid ~ s(X, bs = "tp"),
+      # r_iw <- lgbm(dr_resid ~ X,
       data = selected_data,
       weights = selected_data[, weight_type]
     )
