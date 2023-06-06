@@ -66,13 +66,11 @@ get_graph_ranges <- function() {
 
   s_sink_idx <- sapply(1:nrow(valid_graphs), function(i) {
     amat <- vector_to_amat(valid_graphs[i, ])
-    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     return(sum(amat[, "S"]) == 0)
   })
 
   x_to_s_idx <- sapply(1:nrow(valid_graphs), function(i) {
     amat <- vector_to_amat(valid_graphs[i, ])
-    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     return(amat["S", "X"] == 1 && amat["X", "S"] == 0)
   })
 
