@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Run as: bash run_experiment1.sh 60 1000
+# Run as: bash run_experiment1.sh 50 1000
 
 NITER=${1:-$NITER}
 NOBS=${2:-$NOBS}
@@ -15,4 +15,4 @@ JOBID1=$(sbatch --parsable --dependency=afterok:$JOBID0 --array=1-$NITER exp1b_s
 sbatch --dependency=afterok:$JOBID0,afterany:$JOBID1 exp1c_process_results.sh $NITER $NOBS npos indep
 
 # 1d: Make for each graph 25 plots with n=$NOBS:
-sbatch --dependency=afterok:$JOBID0 exp1d_plot_iterations_sbatch.sh 5 $NOBS npos indep
+# sbatch --dependency=afterok:$JOBID0 exp1d_plot_iterations_sbatch.sh 5 $NOBS npos indep

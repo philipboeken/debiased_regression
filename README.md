@@ -6,12 +6,12 @@ Rscript R/example1.R 400 7 TRUE 500
 
 Run experiment 1 parallel:
 ```
-bash run_experiment1.sh 60 1000
+bash run_experiment1.sh 50 1000
 ```
 
 or on a single thread:
 ```
-NITER = 60
+NITER = 50
 NOBS = 1000
 POSMODE = npos
 INDEPMODE = indep

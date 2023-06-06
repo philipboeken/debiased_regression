@@ -1,2 +1,3 @@
 *.RData
+!results_data_transformed_50_1000_npos_indep_FALSE.RData
 !results_data_transformed_60_1000_npos_indep_FALSE.RData

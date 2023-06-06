@@ -1,3 +1,4 @@
 *
+!*.RData
 !valid_graphs.RData
 !.gitignore

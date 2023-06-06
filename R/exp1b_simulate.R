@@ -16,7 +16,8 @@ cat("\nStarting expb1_simulate.R", c(iter, n, pos_mode, indep_mode, graph_known)
 mse_outfolder <- sprintf("data/exp1/results_%s_%s_%s_%s_%s", n_iter, n, pos_mode, indep_mode, graph_known)
 dir.create(mse_outfolder, showWarnings = FALSE)
 
-for (graph_nr in 1:126) {
+load("data/exp1/admg_nrs_permuted.RData")
+for (graph_nr in admg_nrs_permuted[1:100]) {
   mse_result <- experiment1(graph_nr, iter, n, pos_mode, indep_mode, graph_known)
   outfile <- sprintf("%s/mse_result_%s_%s", mse_outfolder, graph_nr, iter)
   save(mse_result, file = sprintf("%s.RData", outfile))

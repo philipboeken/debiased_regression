@@ -47,10 +47,8 @@ trans_linear <- function(probs, min_value, max_value = 1) {
 }
 
 get_graph <- function(graph_nr) {
-  load("data/exp1/valid_graphs.RData")
-  amat <- matrix(as.numeric(valid_graphs[graph_nr, ]), nrow = 4)
-  colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
-  amat
+  load("data/exp1/valid_admgs.RData")
+  vector_to_amat(valid_graphs[graph_nr, ])
 }
 
 # Returns a list with the indices of:
@@ -58,8 +56,12 @@ get_graph <- function(graph_nr) {
 # DAGs with S not a sink node
 # ADMGs with S a sink node
 # ADMGs with S not a sink node
-get_graph_ranges <- function(graph_nr) {
-  load("data/exp1/valid_graphs.RData")
+get_graph_ranges <- function(typeADMG = FALSE) {
+  if (typeADMG) {
+    load("data/exp1/valid_admgs.RData")
+  } else {
+    load("data/exp1/valid_dags.RData")
+  }
   dags_idx <- sapply(1:nrow(valid_graphs), function(i) {
     amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
@@ -131,8 +133,23 @@ smaller_top_order <- function(v, w, amat) {
   which(top_order == v) < which(top_order == w)
 }
 
+get_all_confounders <- function(vars) {
+  combs <- expand.grid(vars, vars)
+  combs <- combs[which(combs[, 1] != combs[, 2]),]
+  unique(apply(combs, 1, function(r) get_confounder_name(r[2], r[1])))
+}
+
 get_confounder_name <- function(var1, var2) {
-  sprintf("C_%s", paste(sort(c(var1, var2)), collapse = ""))
+  sprintf("C_%s", paste(sort(c(var1, var2)), collapse = "_"))
+}
+
+get_confounded_vars <- function(cnf) {
+  strsplit(cnf, "_")[[1]][c(F, T, T)]
+}
+
+activate_confounder <- function(cnf, amat) {
+  amat[get_confounded_vars(cnf), cnf] <- 1
+  amat
 }
 
 admg_to_dag <- function(amat) {
@@ -152,6 +169,15 @@ admg_to_dag <- function(amat) {
       amat[var2, conf_name] <- 1
     }
   }
+  amat
+}
+
+vector_to_amat <- function(vec) {
+  amat <- matrix(as.numeric(vec), nrow = sqrt(length(vec)))
+  vars <- c("X", "Y", "Z", "S")
+  combs <- get_all_confounders(vars)
+  ord <- c(vars, combs)
+  colnames(amat) <- rownames(amat) <- ord[1:nrow(amat)]
   amat
 }
 
