@@ -56,28 +56,22 @@ get_graph <- function(graph_nr) {
 # DAGs with S not a sink node
 # ADMGs with S a sink node
 # ADMGs with S not a sink node
-get_graph_ranges <- function(typeADMG = FALSE) {
-  if (typeADMG) {
-    load("data/exp1/valid_admgs.RData")
-  } else {
-    load("data/exp1/valid_dags.RData")
-  }
+get_graph_ranges <- function() {
+  load("data/exp1/valid_admgs.RData")
   dags_idx <- sapply(1:nrow(valid_graphs), function(i) {
-    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
-    colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
-    biarrs <- amat * t(amat)
-    biarrs[lower.tri(biarrs, diag = TRUE)] <- 0
-    return(sum(biarrs) == 0)
+    amat <- vector_to_amat(valid_graphs[i, ])
+    confs <- 5:10
+    return(sum(amat[, confs]) == 0)
   })
 
   s_sink_idx <- sapply(1:nrow(valid_graphs), function(i) {
-    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    amat <- vector_to_amat(valid_graphs[i, ])
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     return(sum(amat[, "S"]) == 0)
   })
 
   x_to_s_idx <- sapply(1:nrow(valid_graphs), function(i) {
-    amat <- matrix(as.numeric(valid_graphs[i, ]), nrow = 4)
+    amat <- vector_to_amat(valid_graphs[i, ])
     colnames(amat) <- rownames(amat) <- c("X", "Y", "Z", "S")
     return(amat["S", "X"] == 1 && amat["X", "S"] == 0)
   })
@@ -139,7 +133,7 @@ smaller_top_order <- function(v, w, amat) {
 
 get_all_confounders <- function(vars) {
   combs <- expand.grid(vars, vars)
-  combs <- combs[which(combs[, 1] != combs[, 2]),]
+  combs <- combs[which(combs[, 1] != combs[, 2]), ]
   unique(apply(combs, 1, function(r) get_confounder_name(r[2], r[1])))
 }
 
