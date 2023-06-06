@@ -1,6 +1,6 @@
 source("R/utils.R")
 
-load("output/tables/exp1/results_data_transformed_60_1000_npos_indep_FALSE.RData")
+load("output/tables/exp1/results_data_transformed_50_1000_npos_indep_FALSE.RData")
 all_results <- transformed_results[[1]]
 graph_range <- names(transformed_results)[1]
 cat(graph_range, ":\n")
