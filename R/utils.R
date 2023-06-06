@@ -104,6 +104,10 @@ get_parents <- function(var, amat) {
   colnames(amat)[amat[var, ] == 1]
 }
 
+get_children <- function(var, amat) {
+  rownames(amat)[amat[, var] == 1]
+}
+
 get_roots <- function(amat) {
   is_root <- Reduce(
     function(a, b) a & b,

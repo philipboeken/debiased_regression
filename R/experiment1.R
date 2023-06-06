@@ -62,6 +62,10 @@ simulate_nonlinear <- function(amat, n, seed, pos_mode = "pos", indep_mode = "in
 
   while (sum(all_data$S) < 50) {
     for (var in top_order) {
+      if (!length(c(get_children(var, amat), get_parents(var, amat)))) {
+        all_data[, var] <- numeric(n)
+        next
+      }
       if (var == "S") {
         all_data <- simulate_discr(all_data, var, amat, n, pos_mode, indep_mode)
       } else {
@@ -86,8 +90,8 @@ experiment1 <- function(
   amat <- get_graph(graph_nr)
   amat <- admg_to_dag(amat)
 
-  all_data <- simulate_nonlinear(amat, 2*n, seed, pos_mode, indep_mode)
-  train_idx <- (1:(2*n)) %in% sample(1:(2*n), n)
+  all_data <- simulate_nonlinear(amat, 2 * n, seed, pos_mode, indep_mode)
+  train_idx <- (1:(2 * n)) %in% sample(1:(2 * n), n)
   train_data <- all_data[train_idx, ]
   test_data <- all_data[!train_idx, ]
   test_data <- cbind_predictions(
