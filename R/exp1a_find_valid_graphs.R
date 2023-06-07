@@ -1,5 +1,3 @@
-library(pbapply)
-library(pcalg)
 source("R/utils.R")
 
 # NB fix for pcalg R/isValidGraph.R
@@ -23,6 +21,9 @@ noCycles <- function(amat) {
 }
 
 find_valid_dags <- function(allow_biarr = FALSE) {
+  library(pbapply)
+  library(pcalg)
+
   opts <- expand.grid(data.frame(replicate(16, c(0, 1))))
 
   valid <- pbsapply(1:nrow(opts), function(i) {
