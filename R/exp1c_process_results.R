@@ -36,9 +36,9 @@ write_mse_results <- function(
     }
 }
 
-n_iter <- get_arg_numeric(1)
-n <- get_arg_numeric(2)
-pos_mode <- get_arg_character(3, "pos")
+n_iter <- get_arg_numeric(1, 3)
+n <- get_arg_numeric(2, 500)
+pos_mode <- get_arg_character(3, "npos")
 indep_mode <- get_arg_character(4, "indep")
 graph_known <- get_arg_logical(5, FALSE)
 

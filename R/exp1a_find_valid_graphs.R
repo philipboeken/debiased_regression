@@ -1,6 +1,8 @@
+library(pbapply)
+library(pcalg)
 source("R/utils.R")
 
-# NB directly copied from pcalg R/isValidGraph.R
+# NB fix for pcalg R/isValidGraph.R
 noCycles <- function(amat) {
   ok <- TRUE
   for (i in 1:length(amat[1, ])) {
@@ -21,9 +23,6 @@ noCycles <- function(amat) {
 }
 
 find_valid_dags <- function(allow_biarr = FALSE) {
-  library(pbapply)
-  library(pcalg)
-
   opts <- expand.grid(data.frame(replicate(16, c(0, 1))))
 
   valid <- pbsapply(1:nrow(opts), function(i) {
@@ -137,30 +136,19 @@ plot_graphs <- function(graphs) {
 start <- Sys.time()
 cat("\nStarting exp1a_find_valid_graphs.R", "at", format(start), "\n")
 
-cat("\nFinding valid DAGs:", "\n")
-if (!file.exists("data/exp1/valid_dags.RData")) {
-  valid_graphs <- find_valid_dags()
-  save(valid_graphs, file = "data/exp1/valid_dags.RData")
-} else {
-  load("data/exp1/valid_dags.RData")
-}
-
 cat("\nFinding valid ADMGs:", "\n")
 if (!file.exists("data/exp1/valid_admgs.RData")) {
   valid_graphs <- find_valid_admgs()
   save(valid_graphs, file = "data/exp1/valid_admgs.RData")
-  set.seed(1)
-  admg_nrs_permuted <- sample(1:nrow(valid_graphs), replace = FALSE)
-  save(admg_nrs_permuted, file = "data/exp1/admg_nrs_permuted.RData")
 } else {
   load("data/exp1/valid_admgs.RData")
 }
 
 # graph_ranges <- get_graph_ranges()
 # graph_ranges[["x_to_s"]] <- NULL
-# 
+#
 # filenames <- sprintf("output/figures/exp1/valid_graphs/pmar_%s.pdf", names(graph_ranges))
-# 
+#
 # for (i in 1:length(graph_ranges)) {
 #   graph_range <- graph_ranges[[i]]
 #   if(!length(graph_range)) next

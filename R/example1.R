@@ -130,7 +130,6 @@ example1_single <- function(n = 400, seed = 1, save_figs = FALSE) {
 
   ################################################
   # Plot IW estimator with estimated probabilities
-  # train_data <- cbind_iw(train_data, model=lgbm)
   train_data <- cbind_iw(train_data)
   selected_data <- train_data[train_data$S, ]
   if (save_figs) pdf("output/figures/example1/3_iw_estimated_weights.pdf", width = 5, height = 5 * 2 / 3)
@@ -262,7 +261,6 @@ example1_repeated <- function(n = 400, m = 500, seed = 1) {
 
     test_data <- cbind_repeated(test_data, train_data, imputation_model_data = train_data)
     test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data)
-    # test_data <- cbind_iw(test_data, train_data, pi_model_data = train_data, model=lgbm)
     test_data <- cbind_doubly_robust(test_data, train_data)
 
     mse_result <- get_mse_result(test_data)
