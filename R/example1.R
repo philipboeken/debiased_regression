@@ -272,7 +272,7 @@ example1_repeated <- function(n = 400, m = 500, seed = 1) {
 n <- get_arg_numeric(1, 400)
 seed <- get_arg_numeric(2, 7)
 save_figs <- get_arg_logical(3, FALSE)
-m <- get_arg_numeric(4, 1)
+m <- get_arg_numeric(4, 500)
 
 start <- Sys.time()
 cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
@@ -280,14 +280,14 @@ cat("\nStarting example1.R", c(n, seed, save_figs), "at", format(start), "\n")
 example1_single(n, seed, save_figs)
 
 data_filename <- sprintf("output/tables/example1/results_%s.RData", m)
-# if (!file.exists(data_filename)) {
+if (!file.exists(data_filename)) {
   cat("Running", m, "iterations: \n")
   all_mse_results <- example1_repeated(n, m = m, seed)
   all_mse_results <- transform_mse_results(all_mse_results)
   save(all_mse_results, file = data_filename)
-# } else {
-#   load(data_filename)
-# }
+} else {
+  load(data_filename)
+}
 
 output_table(all_mse_results,
   rows = c(
@@ -303,8 +303,8 @@ output_table(all_mse_results,
 cat("\nInterpolation vs extrapolation:\n")
 output_table(all_mse_results,
   columns = c("y", "y_interp", "y_extrap"),
-  rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped"),
-  row_labels = c("RR", "IW-t", "IW-e"),
+  rows = c("yhat_repeated", "yhat_iw_true_clipped", "yhat_iw_est_clipped", "yhat_dr_true_clipped", "yhat_dr_est_clipped"),
+  row_labels = c("RR", "IW-t", "IW-e", "DR-t", "DR-e"),
   print_sds = 0
 )
 output_table(all_mse_results,
