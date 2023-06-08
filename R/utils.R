@@ -216,51 +216,6 @@ draw_gp <- function(x, kernel_fn, ...) {
   MASS::mvrnorm(1, mu = rep(0, times = nrow(x)), Sigma = cov_matrix)
 }
 
-# lgbm <- function(formula, data, family = gaussian(link = "identity"), weights = NULL) {
-#   if (is.null(weights)) {
-#     weights <- replicate(nrow(data), 1)
-#   }
-#   response <- all.vars(formula[[2]])
-#   covariates <- all.vars(formula[[3]])
-#   if (family$family == "gaussian") {
-#     model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
-#       data = as.matrix(data[, covariates]),
-#       label = as.matrix(data[, response]),
-#       params = list(objective = "regression", metric = "l2"),
-#       weight = weights,
-#       verbose = -1
-#     )))
-#   } else if (family$family == "binomial") {
-#     model <- suppressWarnings(suppressMessages(lightgbm::lightgbm(
-#       data = as.matrix(data[, covariates]),
-#       label = as.matrix(data[, response]),
-#       params = list(objective = "binary", metric = "cross_entropy"),
-#       weight = weights,
-#       verbose = -1
-#     )))
-#   }
-#   unlockBinding("predict", model)
-#   pred <- model$predict
-#   model$predict <- function(data, ...) {
-#     pred(as.matrix(data), ...)
-#   }
-#   lockBinding("predict", model)
-#   model
-# }
-
-gam_wrapper <- function(formula, data, weights = NULL) {
-  if (is.null(weights)) {
-    weights <- replicate(nrow(data), 1)
-  }
-  response <- all.vars(formula[[2]])
-  covariates <- all.vars(formula[[3]])
-  formula_2 <- as.formula(sprintf(
-    "%s ~ s(%s, bs=\"tp\")", response,
-    paste(covariates, collapse = ", ")
-  ))
-  gam(formula = formula_2, data = data, weights = weights)
-}
-
 cbind_true <- function(test_data, train_data = NULL) {
   if (is.null(train_data)) train_data <- test_data
   # 'True' model as if we have observed all data
@@ -375,8 +330,7 @@ cbind_weights <- function(data, pi_model) {
   data
 }
 
-cbind_iw <- function(test_data, train_data = NULL, pi_model_data = NULL, model = gam_wrapper,
-                     graph_known = FALSE, amat = NULL) {
+cbind_iw <- function(test_data, train_data = NULL, pi_model_data = NULL, graph_known = FALSE, amat = NULL) {
   stopifnot(!(graph_known && is.null(amat)))
 
   if (is.null(train_data)) train_data <- test_data
