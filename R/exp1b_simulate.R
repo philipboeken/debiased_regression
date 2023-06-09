@@ -4,7 +4,7 @@ source("R/utils.R")
 source("R/experiment1.R")
 
 iter <- get_arg_numeric(1, 1)
-n_iter <- get_arg_numeric(2, 3)
+n_iter <- get_arg_numeric(2, 2)
 n <- get_arg_numeric(3, 500)
 pos_mode <- get_arg_character(4, "npos")
 indep_mode <- get_arg_character(5, "indep")
